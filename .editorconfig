@@ -1,0 +1,21 @@
+root = true
+
+#for all other files
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+indent_style = tab
+indent_size = 4
+trim_trailing_whitespace = true
+
+#for hidden .files
+[.*]
+charset = utf-8
+indent_style = tab
+indent_size = 4
+trim_trailing_whitespace = true
+
+#override setting for markdown files
+[*.md]
+trim_trailing_whitespace = false
