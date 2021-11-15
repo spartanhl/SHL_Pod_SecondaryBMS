@@ -19,10 +19,11 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include <stdint.h>
+#include <string.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "TinyBMS.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,12 +63,15 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+void writetoreg(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint32_t val = OVERVOLTAGE_CUTOFF;
+uint8_t payload[200];
+#define RX_LEN 200
+uint8_t rx_buffer[RX_LEN];
 /* USER CODE END 0 */
 
 /**
@@ -415,6 +419,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void writetoreg(void) {
+
+	for(uint32_t i = 0; i < strlen(payload); i++) {
+		HAL_UART_Transmit(&huart2, (uint8_t*)&payload[i], sizeof(payload[i]), HAL_MAX_DELAY);
+	}
+}
 
 /* USER CODE END 4 */
 

@@ -38,7 +38,7 @@
 #define EXTERNAL_TEMP_SENSOR2_TEMP				43		// [INT_16]  0.1°C Resolution 					(R)
 #define DISTANCE_LEFT_TO_EMPTY					44		// [UINT_16] 1km Resolution   					(R)
 /* RESERVED 45 */
-#define STATE_OF_CHARGE							46    	// [UINT_32] 0.000 001 % Resolution 			(R)		//High Word: 47
+#define STATE_OF_CHARGE_LIVE					46    	// [UINT_32] 0.000 001 % Resolution 			(R)		//High Word: 47
 #define BMS_INTERNAL_TEMP						48		// [INT_16]  0.1°C Resolution 					(R)
 /* RESERVED 49 */
 #define BMS_ONLINE_STATUS						50		// [UINT_16] 									(R)
@@ -216,7 +216,7 @@
 #define OVERTEMP_CUTOFF							319		// [INT_16]  [ +20 to   +90] 1°C Resolution		(R/W)
 #define LOWTEMP_CHARGER_CUTOFF					320		// [INT_16]  [ -40 to   +10] 1°C Resolution		(R/W)
 /* RESERVED 321-327 */
-#define STATE_OF_CHARGE							328		// [UINT_16] [   0 to 50000] 0.002% Resolution  (R/W)
+#define STATE_OF_CHARGE_SETTING					328		// [UINT_16] [   0 to 50000] 0.002% Resolution  (R/W)
 /* RESERVED 329 */
 
 /* ** The High Bytes of the following Registers (330-343) are all RESERVED..   **
