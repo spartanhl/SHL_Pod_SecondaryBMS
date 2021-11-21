@@ -29,7 +29,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
-#include <stdint.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "TinyBMS.h"
@@ -111,7 +111,20 @@ void Error_Handler(void);
 #define LD2_Pin GPIO_PIN_7
 #define LD2_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
+#define USART2_RX_Pin GPIO_PIN_3
+#define USART2_RX_GPIO_Port GPIOA
+#define TinyBMS_TX_Pin USART2_TX_Pin
+#define TinyBMS_TX_GPIO_Port USART2_TX_GPIO_Port
 
+#define USART2_TX_Pin GPIO_PIN_5
+#define USART2_TX_GPIO_Port GPIOD
+#define TinyBMS_RX_Pin USART2_TX_Pin
+#define TinyBMS_RX_GPIO_Port USART2_TX_GPIO_Port
+
+#define USART3_TX_Pin STLK_RX_Pin
+#define USART3_TX_GPIO_Port GPIOD
+#define USART3_RX STLK_TX_Pin
+#define USART3_RX_GPIO_Port GPIOD
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
