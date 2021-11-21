@@ -1,9 +1,10 @@
-/*
- * TinyBMS.h
- *
- *  Created on: Nov 10, 2021
- *      Author: Oliver Moore
- */
+/***********************************************
+* @file TinyBMS.h
+* @brief TinyBMS Library Header
+* @author Oliver Moore
+* @version 1.0
+* @date 11-21-2021
+***********************************************/
 
 #ifndef INC_TINYBMS_H_
 #define INC_TINYBMS_H_
