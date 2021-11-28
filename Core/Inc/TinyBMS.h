@@ -12,6 +12,7 @@
 /**************** Header Files ****************/
 #include <stdint.h>
 #include <string.h>
+#include "main.h"
 
 /**************************** Register Addresses ****************************/
 
@@ -374,24 +375,22 @@ const static uint16_t crcTable[256]={
 
 
 /* TinyBMS UART API Function Prototypes */
-int TinyBMS_ResetClearEventsStatistics(uint8_t option);
-int TinyBMS_ReadNewestEvents(void);
-int TinyBMS_ReadAllEvents(void);
-int TinyBMS_ReadBatteryPackVoltage(void);
-int TinyBMS_ReadBatteryPackCurrent(void);
-int TinyBMS_ReadBatteryPackMaxCellVoltage(void);
-int TinyBMS_ReadBatteryPackMinCellVoltage(void);
-int TinyBMS_ReadOnlineStatus(void);
-int TinyBMS_ReadLifetimeCounter(void);
-int TinyBMS_ReadEstimatedSOCValue(void);
-int TinyBMS_ReadDeviceTemperatures(void);
-int TinyBMS_ReadBatteryPackCellVoltages(void);
-int TinyBMS_ReadSettingsValues(uint8_t option, uint8_t rl);
-int TinyBMS_ReadVersion(void);
-int TinyBMS_ReadVersionExtended(void);
-int TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(void);
+int TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option);
+int TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadAllEvents(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadOnlineStatus(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadLifetimeCounter(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl);
+int TinyBMS_ReadVersion(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2);
+int TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2);
 
-/* CRC Calculation Function Prototype */
-uint16_t CRC16(const uint8_t* data, uint16_t length);
 
 #endif /* INC_TINYBMS_H_ */
