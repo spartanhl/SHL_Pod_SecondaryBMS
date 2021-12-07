@@ -375,22 +375,22 @@ const static uint16_t crcTable[256]={
 
 
 /* TinyBMS UART API Function Prototypes */
-int TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option);
-int TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadAllEvents(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadOnlineStatus(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadLifetimeCounter(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl);
-int TinyBMS_ReadVersion(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2);
-int TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option);
+uint8_t TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadAllEvents(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadOnlineStatus(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadLifetimeCounter(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl);
+uint8_t TinyBMS_ReadVersion(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2);
 
 
 #endif /* INC_TINYBMS_H_ */
