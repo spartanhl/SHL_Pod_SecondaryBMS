@@ -22,7 +22,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "TinyBMS.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -65,6 +64,24 @@ void writetoreg(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+volatile uint8_t tx[50];
+volatile uint8_t rx[50];
+uint8_t rx1[50];
+uint8_t tx1[50];
+
+volatile uint8_t txCmpl = 0;
+volatile uint8_t rxCmpl = 0;
+volatile uint8_t toTransfer = 0;
+volatile uint8_t wasTransferred = 0;
+
+
+volatile uint16_t rxCount = 0;
+volatile uint16_t readLen = 0;
+volatile uint16_t rxPos2 = 0;
+volatile uint16_t rxPos1 = 0;
+volatile uint16_t wasRead = 0;
+const char * stateUART(HAL_UART_StateTypeDef State);
+
 /* USER CODE END 0 */
 
 /**
@@ -101,21 +118,71 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // Init
+  HAL_StatusTypeDef res;
+
+  HAL_Delay(10);
+
+  rxCmpl = 0;
+  readLen = 1;
+  wasRead = 0;
+  rxPos1 = 0;
+  rxPos2 = 0;
+
+
+  if((res = HAL_UART_Receive_IT(&huart2, (uint8_t*)rx, readLen)) == HAL_OK) {
+	  printf("HAL_OK\n");
+  } else if(res == HAL_ERROR) {
+	  printf("< 2 HAL_ERROR %.2X state = %s\n", (uint8_t)huart2.ErrorCode, stateUART(huart2.RxState));
+  } else if(res == HAL_BUSY) {
+	  printf("< HAL_BUSY\n");
+  }
+
+  for(int i = 0; i < sizeof(tx); i++) {
+	  tx[i] = i;
+  }
+
+
+  //Use commenting to test specific TinyBMS UART API -- Hangs in while loop unless return is a success (0xAA)
+  /*
+  int8_t option = 0x01;
+
+  while(TinyBMS_ResetClearEventsStatistics(&huart2, option) != 0xAA) {}
+  while(TinyBMS_ReadNewestEvents(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadAllEvents(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadBatteryPackVoltage(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadBatteryPackCurrent(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadBatteryPackMaxCellVoltage(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadBatteryPackMinCellVoltage(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadOnlineStatus(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadLifetimeCounter(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadEstimatedSOCValue(&huart2) != 0xAA) {}
+  */
+
+  while(TinyBMS_ReadDeviceTemperatures(&huart2) != 0xAA) {}
+
+  /*
+  while(TinyBMS_ReadBatteryPackCellVoltages(&huart2) != 0xAA) {}
+
+  option = 0x01; //0x01 min settings, 0x02 max settings, 0x03 default settings, 0x04 current settings
+  uint8_t rl = 0x01; //Max 100 (0x64) registers
+  while(TinyBMS_ReadSettingsValues(&huart2, option, rl) != 0xAA) {}
+
+  while(TinyBMS_ReadVersion(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadVersionExtended(&huart2) != 0xAA) {}
+  while(TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(&huart2) != 0xAA) {}
+  */
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-    /* USER CODE BEGIN 3 */
-	  if(!TinyBMS_ReadDeviceTemperatures(&huart2)) {
 
-	  } else {
-		  printf("Fail");
-	  }
+  	while(1) {
+  		/* USER CODE END WHILE */
+  		/* USER CODE BEGIN 3 */
 
-  }
+  	}
   /* USER CODE END 3 */
 }
 
@@ -221,12 +288,13 @@ static void MX_USART2_UART_Init(void)
 {
 
   /* USER CODE BEGIN USART2_Init 0 */
-
   /* USER CODE END USART2_Init 0 */
 
   /* USER CODE BEGIN USART2_Init 1 */
 
+  //USART2: PA3 PD5 for TinyBMS communication
   //Verified with UART configuration stated on TinyBMS_Communication_Protocols.pdf page 4
+
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 115200;
@@ -262,7 +330,8 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE BEGIN USART3_Init 1 */
 
-  //Verified with UART configuration stated on TinyBMS_Communication_Protocols.pdf page 4
+  //USART3: PD8 PD9 for ST_LINK debugging (printf ITM)
+
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
   huart3.Init.BaudRate = 115200;
@@ -404,6 +473,110 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+
+	if(huart->Instance == USART2) {
+		uint16_t TxXferCount = huart->TxXferCount;
+		uint16_t TxXferSize = huart->TxXferSize;
+
+		if(TxXferSize == 0) {
+			//printf("HAL_UART_TxCpltCallback count = %d  size = %d \n", count, size);
+			HAL_UART_Transmit_IT(huart, (uint8_t *)(tx), toTransfer);
+
+		} else if((TxXferSize > 0) && (TxXferCount < TxXferSize)) {
+
+			for(int i = 0; i < (TxXferSize - TxXferCount); i++) {
+				tx1[wasTransferred++] = tx[i];
+			}
+
+			if(TxXferCount > 0) {
+				HAL_UART_Transmit_IT(huart, (uint8_t *)(tx + TxXferSize - TxXferCount), TxXferCount);
+			} else {
+				txCmpl = 1;
+			}
+
+			//printf("USART2 HAL_UART_TxCpltCallback TxXferCount = %d  TxXferSize = %d \n", count, size);
+		}
+	}
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+
+	if(huart->Instance == USART2) {
+		uint16_t RxXferCount = huart->RxXferCount;
+		uint16_t RxXferSize = huart->RxXferSize;
+
+		//printf("USART2 HAL_UART_RxCpltCallback count = %d size = %d \n", count, size);
+
+		if(RxXferSize == 0) {
+			HAL_UART_Receive_IT(huart, (uint8_t *)(rx), readLen);
+
+		} else if((RxXferSize > 0) && (RxXferCount < RxXferSize)) {
+			for(int i = 0; i < (RxXferSize - RxXferCount); i++) {
+				if(rxPos2 == sizeof(rx1)) {
+					rxPos2 = 0;
+				}
+				rx1[rxPos2++] = rx[i];
+			}
+
+			if(RxXferCount > 0) {
+				HAL_UART_Receive_IT(huart, (uint8_t *)(rx + RxXferSize - RxXferCount), RxXferCount);
+			} else {
+				rxCmpl = 1;
+				HAL_UART_Receive_IT(huart, (uint8_t *)(rx), readLen);
+			}
+		}
+	}
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+
+	if(huart->Instance == USART2) {
+		uint16_t TxXferCount = huart->TxXferCount;
+		uint16_t TxXferSize = huart->TxXferSize;
+		printf("> HAL_UART_ErrorCallback USART2\n");
+		printf("> TxXferCount = %d TxXferSize = %d\n", TxXferCount, TxXferSize);
+	}
+}
+
+void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart) {
+
+	printf("HAL_UART_AbortReceiveCpltCallback \n");
+}
+
+void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart) {
+
+	printf("HAL_UART_AbortTransmitCpltCallback \n");
+}
+void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {
+
+	printf("HAL_UART_AbortCpltCallback \n");
+}
+
+const char * stateUART(HAL_UART_StateTypeDef State) {
+
+	switch(State) {
+		case HAL_UART_STATE_RESET:
+			return "HAL_UART_STATE_RESET";
+		case HAL_UART_STATE_READY:
+			return "HAL_UART_STATE_READY";
+		case HAL_UART_STATE_BUSY:
+			return "HAL_UART_STATE_BUSY";
+		case HAL_UART_STATE_BUSY_TX:
+			return "HAL_UART_STATE_BUSY_TX";
+		case HAL_UART_STATE_BUSY_RX:
+			return "HAL_UART_STATE_BUSY_RX";
+		case HAL_UART_STATE_BUSY_TX_RX:
+			return "HAL_UART_STATE_BUSY_TX_RX";
+		case HAL_UART_STATE_TIMEOUT:
+			return "HAL_UART_STATE_TIMEOUT";
+		case HAL_UART_STATE_ERROR:
+			return "HAL_UART_STATE_ERROR";
+		default:
+			return "????";
+	}
+	return "???";
+}
 
 /* USER CODE END 4 */
 

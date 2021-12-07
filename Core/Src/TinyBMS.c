@@ -6,17 +6,49 @@
 * @date 11-21-2021
 ***********************************************/
 
+/*
+ * UART API Testing :
+ *
+ *   #    	Testing   Complete    	Function
+ *  1.1.1 		[] 			[]		TinyBMS_ACK
+ *  1.1.2 		[] 			[]		TinyBMS_ReadRegBlock
+ *  1.1.3 		[] 			[]		TinyBMS_ReadRegIndividual
+ *  1.1.4 		[] 			[]		TinyBMS_WriteRegBlock
+ *  1.1.5 		[] 			[]		TinyBMS_WriteRegIndividual
+ *  1.1.6 		[] 			[]		TinyBMS_ReadRegBlockMODBUS
+ *  1.1.7 		[] 			[]		TinyBMS_WriteRegBlockMODBUS
+ *
+ *  1.1.8 		[] 			[] 		TinyBMS_ResetClearEventsStatistics
+ *  1.1.9 		[] 			[]		TinyBMS_ReadNewestEvents
+ * 1.1.10 		[] 			[]		TinyBMS_ReadAllEvents
+ * 1.1.11 		[] 			[]		TinyBMS_ReadBatteryPackVoltage
+ * 1.1.12 		[] 			[]		TinyBMS_ReadBatteryPackCurrent
+ * 1.1.13 		[] 			[]		TinyBMS_ReadBatteryPackMaxCellVoltage
+ * 1.1.14 		[] 			[]		TinyBMS_ReadBatteryPackMinCellVoltage
+ * 1.1.15 		[] 			[]		TinyBMS_ReadOnlineStatus
+ * 1.1.16 		[] 			[]		TinyBMS_ReadLifetimeCounter
+ * 1.1.17 		[] 			[]		TinyBMS_ReadEstimatedSOCValue
+ * 1.1.18 		[x] 		[]		TinyBMS_ReadDeviceTemperatures
+ * 1.1.19 		[] 			[]		TinyBMS_ReadBatteryPackCellVoltages
+ * 1.1.20 		[] 			[]		TinyBMS_ReadSettingsValues
+ * 1.1.21 		[] 			[]		TinyBMS_ReadVersion
+ * 1.1.22 		[] 			[]		TinyBMS_ReadVersionExtended
+ * 1.1.23 		[] 			[]		TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft
+ *
+ */
+
+
 /**************** Header Files ****************/
 #include "TinyBMS.h"
 
 /*************** Static Function Prototypes **************/
-static int TinyBMS_ACK(UART_HandleTypeDef *huart2, uint8_t cmd);
-static int TinyBMS_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t addr);
-static int TinyBMS_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr);
-static int TinyBMS_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr, uint16_t* data);
-static int TinyBMS_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr, uint16_t* data);
-static int TinyBMS_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl);
-static int TinyBMS_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t* data);
+static uint8_t TinyBMS_ACK(UART_HandleTypeDef *huart2, uint8_t cmd);
+static uint8_t TinyBMS_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t addr);
+static uint8_t TinyBMS_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr);
+static uint8_t TinyBMS_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr, uint16_t* data);
+static uint8_t TinyBMS_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr, uint16_t* data);
+static uint8_t TinyBMS_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl);
+static uint8_t TinyBMS_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t* data);
 
 /* CRC Calculation Function Prototype */
 static uint16_t CRC16(const uint8_t* data, uint16_t length);
@@ -52,14 +84,14 @@ static uint16_t CRC16(const uint8_t* data, uint16_t length);
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  * @param[in]			-  cmd - Command code (uint8_t)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  0x00 - CMD ERROR , 0x01 - CRC ERROR
  *
  */
-static int TinyBMS_ACK(UART_HandleTypeDef *huart2, uint8_t cmd) {
+static uint8_t TinyBMS_ACK(UART_HandleTypeDef *huart2, uint8_t cmd) {
 
-	int retval = -1;
+	uint8_t retval = 0xFF;
 	uint8_t error;
 
 	return retval;
@@ -75,15 +107,15 @@ static int TinyBMS_ACK(UART_HandleTypeDef *huart2, uint8_t cmd) {
  * @param[in]			-  rl - Number (length) of registers to read (uint8_t)
  * @param[in]			-  addr - First register's block address (LSB first) (uint16_t)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  Returns a pointer to the address of the first word of the data block (LSB first).
  * 						   	A memory block is a group of one or more contiguous bytes of memory allocated
  * 						  	by malloc(size_t size).
  */
-static int TinyBMS_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t addr) {
+static uint8_t TinyBMS_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t addr) {
 
-	int retval = -1;
+	uint8_t retval = 0xFF;
 
 	return retval;
 }
@@ -100,7 +132,7 @@ static int TinyBMS_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t
  * @param[in]			-  addr - a pointer to the first address of data structure containing the register
  * 							addresses to be read from (LSB first) (uint16_t*)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  The order of data values returned will match the order of addresses given.
  * 										Individual Register Response from BMS [OK]:
@@ -108,9 +140,9 @@ static int TinyBMS_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t
  * 						 	ADDRn:LSB  ADDRn:MSB   DATAn:LSB   DATAn:MSB   CRC:LSB     CRC:MSB
  * 						 	      [UINT16]			     [UINT16]
  */
-static int TinyBMS_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr) {
+static uint8_t TinyBMS_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr) {
 
-	int retval = -1;
+	uint8_t retval = 0xFF;
 	return retval;
 
 	//Placeholder code
@@ -136,12 +168,12 @@ static int TinyBMS_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uin
  * @param[in]			-  data - a pointer to the first address of data structure containing the register
  * 							values (LSB first) (uint16_t*)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  A memory block is a group of one or more contiguous bytes of memory allocated by malloc(size_t size).
  */
-static int TinyBMS_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr, uint16_t* data) {
-	int retval = -1;
+static uint8_t TinyBMS_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr, uint16_t* data) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -158,7 +190,7 @@ static int TinyBMS_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_
  * @param[in]			-  data - a pointer to the first address of data structure containing the register
  * 							values (LSB first) (uint16_t*) *NOTE*
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  The order of data values given coincides with the order of addresses given.
  * 										Individual Register request to BMS:
@@ -166,8 +198,8 @@ static int TinyBMS_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_
  * 						 	ADDRn:LSB  ADDRn:MSB   DATAn:LSB   DATAn:MSB   CRC:LSB     CRC:MSB
  * 						 	      [UINT16]			     [UINT16]
  */
-static int TinyBMS_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr, uint16_t* data) {
-	int retval = -1;
+static uint8_t TinyBMS_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t* addr, uint16_t* data) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -181,7 +213,7 @@ static int TinyBMS_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, ui
  * @param[in]			-  addr - First register's block address (MSB first!!) (uint16_t)
  * @param[in]			-  rl - Number (length) of registers to read (uint8_t) **Max 127 registers (0x7F)**
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  A memory block is a group of one or more contiguous bytes of memory allocated by malloc(size_t size).
  * 						   MODBUS addresses and data is MSB first (Big Endian). CRC however is still LSB First! (Little Endian)
@@ -190,8 +222,8 @@ static int TinyBMS_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, ui
  * 						 	  DATAn:MSB   DATAn:LSB   CRC:LSB     CRC:MSB
  * 						 	        [UINT16]
  */
-static int TinyBMS_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl) {
-	int retval = -1;
+static uint8_t TinyBMS_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -208,7 +240,7 @@ static int TinyBMS_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr,
  * @param[in]			-  data - a pointer to the first address of data structure containing the register
  * 							values (MSB first!!) (uint16_t*) *NOTE*
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  A memory block is a group of one or more contiguous bytes of memory allocated by malloc(size_t size).
  * 						   MODBUS addresses and data is MSB first (Big Endian). CRC however is still LSB First! (Little Endian)
@@ -217,8 +249,8 @@ static int TinyBMS_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr,
  * 						 	  DATAn:MSB   DATAn:LSB   CRC:LSB     CRC:MSB
  * 						 	        [UINT16]
  */
-static int TinyBMS_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t* data) {
-	int retval = -1;
+static uint8_t TinyBMS_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t* data) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -231,13 +263,13 @@ static int TinyBMS_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  * @param[in]			-  option (uint8_t) *NOTE*
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  0x01 - Clear Events , 0x02 - Clear Statistics , 0x05 - Reset BMS
  *
  */
-int TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option) {
-	int retval = -1;
+uint8_t TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -249,7 +281,7 @@ int TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t optio
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  This function does not take any arguments or return timestamp/event ID info.
  * 						   The BMS response is a bit complex to parse through, but will be output/printed
@@ -257,8 +289,8 @@ int TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t optio
  * 						   PL: Payload length in bytes [UINT8]. BTSP: BMS timestamp in seconds [UINT32].
  * 						   TSP: Event timestamp in seconds [UINT24]. EVENT: BMS Event ID [UINT8].
  */
-int TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -270,7 +302,7 @@ int TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  This function does not take any arguments or return timestamp/event ID info.
  * 						   The BMS response is a bit complex to parse through, but will be output/printed
@@ -278,8 +310,8 @@ int TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2) {
  * 						   PL: Payload length in bytes [UINT8]. BTSP: BMS timestamp in seconds [UINT32].
  * 						   TSP: Event timestamp in seconds [UINT24]. EVENT: BMS Event ID [UINT8].
  */
-int TinyBMS_ReadAllEvents(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadAllEvents(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -292,15 +324,15 @@ int TinyBMS_ReadAllEvents(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  			Response from BMS [OK]:
  * 						 	  Byte3      Byte4  Byte5  	Byte6 		Byte7 	Byte8
  * 						 	  DATA:LSB   DATA   DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	               [FLOAT]
  */
-int TinyBMS_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -313,15 +345,15 @@ int TinyBMS_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  			Response from BMS [OK]:
  * 						 	  Byte3      Byte4  Byte5  	Byte6 		Byte7 	Byte8
  * 						 	  DATA:LSB   DATA   DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	               [FLOAT]
  */
-int TinyBMS_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -334,15 +366,15 @@ int TinyBMS_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  			Response from BMS [OK]:
  * 						 	  Byte3        	Byte4 		Byte5 	Byte6
  * 						 	  DATA:LSB   	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        [UINT16]
  */
-int TinyBMS_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -355,15 +387,15 @@ int TinyBMS_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				- 			Response from BMS [OK]:
  * 						 	  Byte3        	Byte4 		Byte5 	Byte6
  * 						 	  DATA:LSB   	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        [UINT16]
  */
-int TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -376,7 +408,7 @@ int TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-			Response from BMS [OK]:
  * 						 	  Byte3        	Byte4 		Byte5 	Byte6
@@ -386,8 +418,8 @@ int TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
  * 						   0x93 - Discharging [INFO], 0x94 - Regeneration [INFO]
  * 						   0x97 - Idle [INFO], 0x9B - Fault [ERROR]
  */
-int TinyBMS_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -400,15 +432,15 @@ int TinyBMS_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  				Response from BMS [OK]:
  * 						 	  Byte3      Byte4 	Byte5 	Byte6		Byte5 	Byte6
  * 						 	  DATA:LSB   DATA	DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        	  [UINT32]
  */
-int TinyBMS_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -421,15 +453,15 @@ int TinyBMS_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  				Response from BMS [OK]:
  * 						 	  Byte3      Byte4 	Byte5 	Byte6		Byte5 	Byte6
  * 						 	  DATA:LSB   DATA	DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        	  [UINT32]
  */
-int TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -442,7 +474,7 @@ int TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  				Response from BMS [OK]:
  * 						 	Byte4      Byte5 		Byte6 		Byte7		Byte 8	 	Byte 9 		Byte10 	Byte11
@@ -452,9 +484,9 @@ int TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
  * 						  	(Reg 42) DATA2 - External Temp Sensor #1 (value of -327689 if NC)
  * 						  	(Reg 43) DATA3 - External Temp Sensor #2 (value of -327689 if NC)
  */
-int TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 	printf("TinyBMS_ReadDeviceTemperatures\n");
-	int retval = -1;
+	uint8_t retval = 0xFF;
 
 	uint8_t tx_buffer[50], rx_buffer[50];
 	uint8_t PL = 0, CRC_LSB = 0, CRC_MSB = 0;
@@ -465,21 +497,28 @@ int TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 	tx_buffer[0] = 0xAA;
 	tx_buffer[1] = 0x1B; //command
 
-	CRC_request = CRC16(tx_buffer, 2);
-	CRC_LSB = (CRC_request & 0xFF);
-	CRC_MSB = ((CRC_request >> 8) & 0xFF);
+	//Verified!
+	CRC_request = CRC16(tx_buffer, 2);		//should be 0x1B3F
+	CRC_LSB = (CRC_request & 0xFF); 		//should be 0x3F
+	CRC_MSB = ((CRC_request >> 8) & 0xFF);	//should be 0x1B
+	/*
+	printf("CRC_request: 0x%04X\n", CRC_request);
+	printf("CRC_LSB: 0x%02X\n", CRC_LSB);
+	printf("CRC_MSB: 0x%02X\n", CRC_MSB);
+	*/
+
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
-	HAL_UART_Transmit_IT(huart2, tx_buffer, 4);
+	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	//[ERROR] //If Byte 2 is equal to 0x00 instead of 0x1B
 	if(rx_buffer[1] == 0x00) {
 		printf("Response from BMS [ERROR]\n");
 
-		HAL_UART_Receive_IT(huart2, &rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+		HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 		uint8_t error = rx_buffer[3];
 
@@ -489,17 +528,20 @@ int TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 
 		if(CRC_calc == CRC_reply) {
 			printf("CRC pass\n");
-			printf("ERROR Code: 0x%02X\n", error);
+			printf("ERROR Code: 0x%02X\n", error); //valid error code
+			retval = error;
 		} else {
 			printf("CRC fail in BMS ERROR\n");
+			retval = 0xFF; //failure
 		}
-		retval = -1;
 
 	//[OK]
 	} else {
 		printf("Response from BMS [OK]\n");
+
 		//Unsure if payload length changes
-		HAL_UART_Receive_IT(huart2, &rx_buffer[2], 9); //read bytes 3-11 from OK reply
+		HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 9); //read bytes 3-11 from OK reply
+
 		PL = rx_buffer[2]; //payload length
 		printf("Payload Length: 0x%02X\n", PL);
 
@@ -520,10 +562,10 @@ int TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 			printf("TinyBMS internal temperature: 0x%04X\n", internalTemp);
 			printf("External sensor 1 temperature: 0x%04X\n", externalTemp1);
 			printf("External sensor 2 temperature: 0x%04X\n", externalTemp2);
-			retval = 0; //success
+			retval = 0xAA; //success
 		} else {
 			printf("CRC fail in BMS OK\n");
-			retval = -1;
+			retval = 0xFF; //failure
 		}
 
 	}
@@ -538,15 +580,15 @@ int TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				- 			Response from BMS [OK]:
  * 						 	  Byte n*2+2    Byte n*2+3 		Byte n*2+4 	Byte n*2+5
  * 						 	  DATAn:LSB   	DATAn:MSB   	CRC:LSB 	CRC:MSB
  * 						 	       	 [UINT16]
  */
-int TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -560,7 +602,7 @@ int TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
  * @param[in]			-  option - (uint8_t) *NOTE*
  * @param[in]			-  rl - (uint8_t) *NOTE*
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-			Response from BMS [OK]:
  * 						 	  Byte n*2+2    Byte n*2+3 		Byte n*2+4 	Byte n*2+5
@@ -572,8 +614,8 @@ int TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
  *
  * 						   RL - Registers to read. Max. 100 (0x64) registers
  */
-int TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl) {
-	int retval = -1;
+uint8_t TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -585,7 +627,7 @@ int TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  				Response from BMS [OK]:
  * 						 	  Byte4   Byte5   Byte6  Byte7  	Byte8 		Byte9 	Byte10
@@ -596,8 +638,8 @@ int TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8
  * 						 	 DATA3 - Firmware public version
  * 						 	 DATA4 - Firmware internal version
  */
-int TinyBMS_ReadVersion(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadVersion(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -609,7 +651,7 @@ int TinyBMS_ReadVersion(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  				Response from BMS [OK]:
  * 						 	  Byte4   Byte5   Byte6  Byte7  	Byte8 	  Byte9  Byte10	Byte11 	Byte12
@@ -622,8 +664,8 @@ int TinyBMS_ReadVersion(UART_HandleTypeDef *huart2) {
  * 						 	 DATA5 - Bootloader version
  * 						 	 DATA6 - Register map version
  */
-int TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
@@ -635,7 +677,7 @@ int TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2) {
  *
  * @param[in]			-  huart2 - base address of UART2 Handle (UART_HandleTypeDef)
  *
- * @return				-  0 Success, -1 Failure
+ * @return				-  0xAA Success, 0xFF CRC Failure in BMS OK, (uint8_t) error code
  *
  * @note				-  								Response from BMS [OK]:
  * 						 	 Byte3 		Byte4  Byte5  Byte6  		Byte7  	  Byte8  Byte9 Byte10		Byte11 	  Byte12 Byte13 Byte14
@@ -648,8 +690,8 @@ int TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2) {
  * 						 	 DATA2 - Distance left until empty battery (km)
  * 						 	 DATA3 - Estimated time left until empty battery (s)
  */
-int TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2) {
-	int retval = -1;
+uint8_t TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2) {
+	uint8_t retval = 0xFF;
 	return retval;
 }
 
