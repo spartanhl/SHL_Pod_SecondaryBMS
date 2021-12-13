@@ -138,10 +138,6 @@ int main(void)
 	  printf("< HAL_BUSY\n");
   }
 
-  for(int i = 0; i < sizeof(tx); i++) {
-	  tx[i] = i;
-  }
-
 
   //Use commenting to test specific TinyBMS UART API -- Hangs in while loop unless return is a success (0xAA)
   /*
@@ -512,6 +508,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 			HAL_UART_Receive_IT(huart, (uint8_t *)(rx), readLen);
 
 		} else if((RxXferSize > 0) && (RxXferCount < RxXferSize)) {
+
 			for(int i = 0; i < (RxXferSize - RxXferCount); i++) {
 				if(rxPos2 == sizeof(rx1)) {
 					rxPos2 = 0;
