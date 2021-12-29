@@ -375,22 +375,50 @@ const static uint16_t crcTable[256]={
 
 
 /* TinyBMS UART API Function Prototypes */
-uint8_t TinyBMS_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option);
-uint8_t TinyBMS_ReadNewestEvents(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadAllEvents(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadOnlineStatus(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadLifetimeCounter(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl);
-uint8_t TinyBMS_ReadVersion(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadVersionExtended(UART_HandleTypeDef *huart2);
-uint8_t TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ACK(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t addr);
+uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr[]);
+uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr, uint16_t data[]);
+uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr[], uint16_t data[]);
+uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl);
+uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t data[]);
 
+uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option);
+uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadLifetimeCounter(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl);
+uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart2);
+uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2);
+
+/* TinyBMS CAN API Function Prototypes */
+uint8_t TinyBMS_CAN_ResetClearEventsStatistics(CAN_HandleTypeDef *hcan1, uint8_t option);
+uint8_t TinyBMS_CAN_ReadRegBlock(CAN_HandleTypeDef *hcan1, uint8_t rl, uint16_t addr);
+uint8_t TinyBMS_CAN_WriteRegBlock(CAN_HandleTypeDef *hcan1, uint8_t rl, uint16_t addr, uint16_t data[]);
+uint8_t TinyBMS_CAN_ReadNewestEvents(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadAllEvents(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadBatteryPackVoltage(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadBatteryPackCurrent(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadBatteryPackMinCellVoltage(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadOnlineStatus(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadLifetimeCounter(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadEstimatedSOCValue(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadDeviceTemperatures(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadBatteryPackCellVoltages(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadSettingsValues(CAN_HandleTypeDef *hcan1, uint8_t option, uint8_t rl);
+uint8_t TinyBMS_CAN_ReadVersion(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_ReadNodeID(CAN_HandleTypeDef *hcan1);
+uint8_t TinyBMS_CAN_WriteNodeID(CAN_HandleTypeDef *hcan1);
 
 #endif /* INC_TINYBMS_H_ */

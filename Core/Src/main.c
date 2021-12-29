@@ -129,7 +129,6 @@ int main(void)
   rxPos1 = 0;
   rxPos2 = 0;
 
-
   if((res = HAL_UART_Receive_IT(&huart2, (uint8_t*)rx, readLen)) == HAL_OK) {
 	  printf("HAL_OK\n");
   } else if(res == HAL_ERROR) {
@@ -139,35 +138,58 @@ int main(void)
   }
 
 
-  //Use commenting to test specific TinyBMS UART API -- Hangs in while loop unless return is a success (0xAA)
-  /*
-  int8_t option = 0x01;
+  /*** Use commenting to test specific TinyBMS API -- Hangs in while loop unless return is a success (0xAA) ****/
 
-  while(TinyBMS_ResetClearEventsStatistics(&huart2, option) != 0xAA) {}
-  while(TinyBMS_ReadNewestEvents(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadAllEvents(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadBatteryPackVoltage(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadBatteryPackCurrent(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadBatteryPackMaxCellVoltage(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadBatteryPackMinCellVoltage(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadOnlineStatus(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadLifetimeCounter(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadEstimatedSOCValue(&huart2) != 0xAA) {}
-  */
+  //int8_t option = 0x01;
+  //uint8_t rl = 0, pl = 0;
+  //uint16_t addr = 0x00;
+  //uint16_t addr[100];
+  //uint16_t data[100];
 
-  while(TinyBMS_ReadDeviceTemperatures(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ACK(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadRegBlock(&huart2, rl, addr) != 0xAA) {}
+  //while(TinyBMS_UART_ReadRegIndividual(&huart2, pl, addr[]) != 0xAA) {}
+  //while(TinyBMS_UART_WriteRegBlock(&huart2, pl, addr, data[]) != 0xAA) {}
+  //while(TinyBMS_UART_WriteRegIndividual(&huart2, pl, addr[], data[]) != 0xAA) {}
+  //while(TinyBMS_UART_ReadRegBlockMODBUS(&huart2, addr, rl) != 0xAA) {}
+  //while(TinyBMS_UART_WriteRegBlockMODBUS(&huart2, addr, rl, pl, data[]) != 0xAA) {}
+  //while(TinyBMS_UART_ResetClearEventsStatistics(&huart2, option) != 0xAA) {}
+  //while(TinyBMS_UART_ReadNewestEvents(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadAllEvents(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadBatteryPackVoltage(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadBatteryPackCurrent(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadOnlineStatus(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadLifetimeCounter(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadEstimatedSOCValue(&huart2) != 0xAA) {}
+  while(TinyBMS_UART_ReadDeviceTemperatures(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadBatteryPackCellVoltages(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadSettingsValues(&huart2, option, rl) != 0xAA) {}
+  //while(TinyBMS_UART_ReadVersion(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadVersionExtended(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(&huart2) != 0xAA) {} */
 
-  /*
-  while(TinyBMS_ReadBatteryPackCellVoltages(&huart2) != 0xAA) {}
 
-  option = 0x01; //0x01 min settings, 0x02 max settings, 0x03 default settings, 0x04 current settings
-  uint8_t rl = 0x01; //Max 100 (0x64) registers
-  while(TinyBMS_ReadSettingsValues(&huart2, option, rl) != 0xAA) {}
-
-  while(TinyBMS_ReadVersion(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadVersionExtended(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadCalcSpeedDistanceLeftEstTimeLeft(&huart2) != 0xAA) {}
-  */
+  //while(TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, option) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadRegBlock(&hcan1, rl, addr) != 0xAA) {}
+  //while(TinyBMS_CAN_WriteRegBlock(&hcan1, rl, addr, data[]) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadNewestEvents(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadAllEvents(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadOnlineStatus(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadLifetimeCounter(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadDeviceTemperatures(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadBatteryPackCellVoltages(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadSettingsValues(&hcan1, option, rl) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadVersion(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_ReadNodeID(&hcan1) != 0xAA) {}
+  //while(TinyBMS_CAN_WriteNodeID(&hcan1) != 0xAA) {}
 
   /* USER CODE END 2 */
 

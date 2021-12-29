@@ -7,43 +7,43 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   1 .text         00007e0c  080001d0  080001d0  000101d0  2**4
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .rodata       0000152c  08007fe0  08007fe0  00017fe0  2**3
+  2 .rodata       000019ec  08007fe0  08007fe0  00017fe0  2**3
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  3 .ARM.extab    00000000  0800950c  0800950c  000201dc  2**0
+  3 .ARM.extab    00000000  080099cc  080099cc  000201dc  2**0
                   CONTENTS
-  4 .ARM          00000008  0800950c  0800950c  0001950c  2**2
+  4 .ARM          00000008  080099cc  080099cc  000199cc  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  5 .preinit_array 00000000  08009514  08009514  000201dc  2**0
+  5 .preinit_array 00000000  080099d4  080099d4  000201dc  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  6 .init_array   00000004  08009514  08009514  00019514  2**2
+  6 .init_array   00000004  080099d4  080099d4  000199d4  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  7 .fini_array   00000004  08009518  08009518  00019518  2**2
+  7 .fini_array   00000004  080099d8  080099d8  000199d8  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  8 .data         000001dc  20000000  0800951c  00020000  2**2
+  8 .data         000001dc  20000000  080099dc  00020000  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  9 .bss          0000064c  200001dc  080096f8  000201dc  2**2
+  9 .bss          0000064c  200001dc  08009bb8  000201dc  2**2
                   ALLOC
- 10 ._user_heap_stack 00000600  20000828  080096f8  00020828  2**0
+ 10 ._user_heap_stack 00000600  20000828  08009bb8  00020828  2**0
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  000201dc  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00014789  00000000  00000000  0002020c  2**0
+ 12 .debug_info   00015819  00000000  00000000  0002020c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00002bb6  00000000  00000000  00034995  2**0
+ 13 .debug_abbrev 00002bf1  00000000  00000000  00035a25  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00000e30  00000000  00000000  00037550  2**3
+ 14 .debug_aranges 00000ec8  00000000  00000000  00038618  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_ranges 00000d68  00000000  00000000  00038380  2**3
+ 15 .debug_ranges 00000e00  00000000  00000000  000394e0  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  00027fcd  00000000  00000000  000390e8  2**0
+ 16 .debug_macro  00027fcd  00000000  00000000  0003a2e0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00010ebb  00000000  00000000  000610b5  2**0
+ 17 .debug_line   000119aa  00000000  00000000  000622ad  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000ee168  00000000  00000000  00071f70  2**0
+ 18 .debug_str    000ee4c9  00000000  00000000  00073c57  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000053  00000000  00000000  001600d8  2**0
+ 19 .comment      00000053  00000000  00000000  00162120  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00004bb8  00000000  00000000  0016012c  2**2
+ 20 .debug_frame  00004eb0  00000000  00000000  00162174  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -1207,19 +1207,19 @@ Disassembly of section .text:
  8000edc:	4770      	bx	lr
  8000ede:	bf00      	nop
 
-08000ee0 <TinyBMS_ReadDeviceTemperatures>:
+08000ee0 <TinyBMS_UART_ReadDeviceTemperatures>:
  * 						 	      [INT16]				   [INT16] 				  [INT16]
  * 						  	(Reg 48) DATA1 - TinyBMS Internal Temperature
  * 						  	(Reg 42) DATA2 - External Temp Sensor #1 (value of -327689 if NC)
  * 						  	(Reg 43) DATA3 - External Temp Sensor #2 (value of -327689 if NC)
  */
-uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
  8000ee0:	b580      	push	{r7, lr}
  8000ee2:	b0a6      	sub	sp, #152	; 0x98
  8000ee4:	af00      	add	r7, sp, #0
  8000ee6:	6078      	str	r0, [r7, #4]
-	printf("TinyBMS_ReadDeviceTemperatures\n");
- 8000ee8:	48ae      	ldr	r0, [pc, #696]	; (80011a4 <TinyBMS_ReadDeviceTemperatures+0x2c4>)
+	printf("TinyBMS_UART_ReadDeviceTemperatures\n");
+ 8000ee8:	48ae      	ldr	r0, [pc, #696]	; (80011a4 <TinyBMS_UART_ReadDeviceTemperatures+0x2c4>)
  8000eea:	f004 fffb 	bl	8005ee4 <puts>
 	uint8_t retval = 0xFF;
  8000eee:	23ff      	movs	r3, #255	; 0xff
@@ -1293,15 +1293,15 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 	if(rx_buffer[0] == 0xAA) {
  8000f70:	7b3b      	ldrb	r3, [r7, #12]
  8000f72:	2baa      	cmp	r3, #170	; 0xaa
- 8000f74:	f040 8108 	bne.w	8001188 <TinyBMS_ReadDeviceTemperatures+0x2a8>
+ 8000f74:	f040 8108 	bne.w	8001188 <TinyBMS_UART_ReadDeviceTemperatures+0x2a8>
 
 		//[ERROR]
 		if(rx_buffer[1] == 0x00) {
  8000f78:	7b7b      	ldrb	r3, [r7, #13]
  8000f7a:	2b00      	cmp	r3, #0
- 8000f7c:	d13a      	bne.n	8000ff4 <TinyBMS_ReadDeviceTemperatures+0x114>
+ 8000f7c:	d13a      	bne.n	8000ff4 <TinyBMS_UART_ReadDeviceTemperatures+0x114>
 			printf("Response from BMS [ERROR]\n");
- 8000f7e:	488a      	ldr	r0, [pc, #552]	; (80011a8 <TinyBMS_ReadDeviceTemperatures+0x2c8>)
+ 8000f7e:	488a      	ldr	r0, [pc, #552]	; (80011a8 <TinyBMS_UART_ReadDeviceTemperatures+0x2c8>)
  8000f80:	f004 ffb0 	bl	8005ee4 <puts>
 
 			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
@@ -1337,36 +1337,36 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
  8000fbe:	f8b7 2086 	ldrh.w	r2, [r7, #134]	; 0x86
  8000fc2:	f8b7 3084 	ldrh.w	r3, [r7, #132]	; 0x84
  8000fc6:	429a      	cmp	r2, r3
- 8000fc8:	d10d      	bne.n	8000fe6 <TinyBMS_ReadDeviceTemperatures+0x106>
+ 8000fc8:	d10d      	bne.n	8000fe6 <TinyBMS_UART_ReadDeviceTemperatures+0x106>
 				printf("CRC pass\n");
- 8000fca:	4878      	ldr	r0, [pc, #480]	; (80011ac <TinyBMS_ReadDeviceTemperatures+0x2cc>)
+ 8000fca:	4878      	ldr	r0, [pc, #480]	; (80011ac <TinyBMS_UART_ReadDeviceTemperatures+0x2cc>)
  8000fcc:	f004 ff8a 	bl	8005ee4 <puts>
 				printf("ERROR Code: 0x%02X\n", error); //valid error code
  8000fd0:	f897 3075 	ldrb.w	r3, [r7, #117]	; 0x75
  8000fd4:	4619      	mov	r1, r3
- 8000fd6:	4876      	ldr	r0, [pc, #472]	; (80011b0 <TinyBMS_ReadDeviceTemperatures+0x2d0>)
+ 8000fd6:	4876      	ldr	r0, [pc, #472]	; (80011b0 <TinyBMS_UART_ReadDeviceTemperatures+0x2d0>)
  8000fd8:	f004 fefe 	bl	8005dd8 <iprintf>
 				retval = error;
  8000fdc:	f897 3075 	ldrb.w	r3, [r7, #117]	; 0x75
  8000fe0:	f887 3097 	strb.w	r3, [r7, #151]	; 0x97
- 8000fe4:	e0d8      	b.n	8001198 <TinyBMS_ReadDeviceTemperatures+0x2b8>
+ 8000fe4:	e0d8      	b.n	8001198 <TinyBMS_UART_ReadDeviceTemperatures+0x2b8>
 			} else {
 				printf("CRC fail in BMS ERROR\n");
- 8000fe6:	4873      	ldr	r0, [pc, #460]	; (80011b4 <TinyBMS_ReadDeviceTemperatures+0x2d4>)
+ 8000fe6:	4873      	ldr	r0, [pc, #460]	; (80011b4 <TinyBMS_UART_ReadDeviceTemperatures+0x2d4>)
  8000fe8:	f004 ff7c 	bl	8005ee4 <puts>
 				retval = 0xFF; //failure
  8000fec:	23ff      	movs	r3, #255	; 0xff
  8000fee:	f887 3097 	strb.w	r3, [r7, #151]	; 0x97
- 8000ff2:	e0d1      	b.n	8001198 <TinyBMS_ReadDeviceTemperatures+0x2b8>
+ 8000ff2:	e0d1      	b.n	8001198 <TinyBMS_UART_ReadDeviceTemperatures+0x2b8>
 			}
 
 		//[OK]
 		} else if(rx_buffer[1] == 0x1B) {
  8000ff4:	7b7b      	ldrb	r3, [r7, #13]
  8000ff6:	2b1b      	cmp	r3, #27
- 8000ff8:	f040 80bd 	bne.w	8001176 <TinyBMS_ReadDeviceTemperatures+0x296>
+ 8000ff8:	f040 80bd 	bne.w	8001176 <TinyBMS_UART_ReadDeviceTemperatures+0x296>
 			printf("Response from BMS [OK]\n");
- 8000ffc:	486e      	ldr	r0, [pc, #440]	; (80011b8 <TinyBMS_ReadDeviceTemperatures+0x2d8>)
+ 8000ffc:	486e      	ldr	r0, [pc, #440]	; (80011b8 <TinyBMS_UART_ReadDeviceTemperatures+0x2d8>)
  8000ffe:	f004 ff71 	bl	8005ee4 <puts>
 
 			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
@@ -1383,7 +1383,7 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 			printf("Payload Length: 0x%02X\n", PL);
  8001018:	f897 3083 	ldrb.w	r3, [r7, #131]	; 0x83
  800101c:	4619      	mov	r1, r3
- 800101e:	4867      	ldr	r0, [pc, #412]	; (80011bc <TinyBMS_ReadDeviceTemperatures+0x2dc>)
+ 800101e:	4867      	ldr	r0, [pc, #412]	; (80011bc <TinyBMS_UART_ReadDeviceTemperatures+0x2dc>)
  8001020:	f004 feda 	bl	8005dd8 <iprintf>
 			//Payload Length = PL = 2n bytes -> where n = 1,2,3 (DATA1,DATA2,DATA3)
 
@@ -1413,7 +1413,7 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 			for(uint32_t i = 0; i < numData; i++) {
  8001050:	2300      	movs	r3, #0
  8001052:	f8c7 308c 	str.w	r3, [r7, #140]	; 0x8c
- 8001056:	e029      	b.n	80010ac <TinyBMS_ReadDeviceTemperatures+0x1cc>
+ 8001056:	e029      	b.n	80010ac <TinyBMS_UART_ReadDeviceTemperatures+0x1cc>
 				//TinyBMS Device Temperatures -> LSB = Byte(2n+2) MSB = Byte(2n+3) (i.e. rx_buffer[2n+2 : 2n+3])
 				DATA[i] = ((rx_buffer[(2*n)+3-1] << 8) | (rx_buffer[(2*n)+2-1]));
  8001058:	f8d7 3090 	ldr.w	r3, [r7, #144]	; 0x90
@@ -1450,7 +1450,7 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
  80010ac:	f8d7 208c 	ldr.w	r2, [r7, #140]	; 0x8c
  80010b0:	6ffb      	ldr	r3, [r7, #124]	; 0x7c
  80010b2:	429a      	cmp	r2, r3
- 80010b4:	d3d0      	bcc.n	8001058 <TinyBMS_ReadDeviceTemperatures+0x178>
+ 80010b4:	d3d0      	bcc.n	8001058 <TinyBMS_UART_ReadDeviceTemperatures+0x178>
 			}
 
 			CRC_reply = ((rx_buffer[(2*n)+5-1] << 8) | rx_buffer[(2*n)+4-1]);
@@ -1489,9 +1489,9 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
  8001106:	f8b7 2086 	ldrh.w	r2, [r7, #134]	; 0x86
  800110a:	f8b7 3084 	ldrh.w	r3, [r7, #132]	; 0x84
  800110e:	429a      	cmp	r2, r3
- 8001110:	d12a      	bne.n	8001168 <TinyBMS_ReadDeviceTemperatures+0x288>
+ 8001110:	d12a      	bne.n	8001168 <TinyBMS_UART_ReadDeviceTemperatures+0x288>
 				printf("CRC pass\n");
- 8001112:	4826      	ldr	r0, [pc, #152]	; (80011ac <TinyBMS_ReadDeviceTemperatures+0x2cc>)
+ 8001112:	4826      	ldr	r0, [pc, #152]	; (80011ac <TinyBMS_UART_ReadDeviceTemperatures+0x2cc>)
  8001114:	f004 fee6 	bl	8005ee4 <puts>
 
 				int16_t internalTemp = DATA[0];  //TinyBMS internal temperature
@@ -1500,37 +1500,37 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 				printf("TinyBMS internal temperature: %d°C (0.1°C)\n", internalTemp);
  800111e:	f9b7 307a 	ldrsh.w	r3, [r7, #122]	; 0x7a
  8001122:	4619      	mov	r1, r3
- 8001124:	4826      	ldr	r0, [pc, #152]	; (80011c0 <TinyBMS_ReadDeviceTemperatures+0x2e0>)
+ 8001124:	4826      	ldr	r0, [pc, #152]	; (80011c0 <TinyBMS_UART_ReadDeviceTemperatures+0x2e0>)
  8001126:	f004 fe57 	bl	8005dd8 <iprintf>
 
 				if((numData == 2) || (numData == 3)) {
  800112a:	6ffb      	ldr	r3, [r7, #124]	; 0x7c
  800112c:	2b02      	cmp	r3, #2
- 800112e:	d002      	beq.n	8001136 <TinyBMS_ReadDeviceTemperatures+0x256>
+ 800112e:	d002      	beq.n	8001136 <TinyBMS_UART_ReadDeviceTemperatures+0x256>
  8001130:	6ffb      	ldr	r3, [r7, #124]	; 0x7c
  8001132:	2b03      	cmp	r3, #3
- 8001134:	d114      	bne.n	8001160 <TinyBMS_ReadDeviceTemperatures+0x280>
+ 8001134:	d114      	bne.n	8001160 <TinyBMS_UART_ReadDeviceTemperatures+0x280>
 					int16_t externalTemp1 = DATA[1];  //External Temp Sensor #1
  8001136:	897b      	ldrh	r3, [r7, #10]
  8001138:	f8a7 3078 	strh.w	r3, [r7, #120]	; 0x78
 					printf("External sensor 1 temperature: %d°C (0.1°C)\n", externalTemp1);
  800113c:	f9b7 3078 	ldrsh.w	r3, [r7, #120]	; 0x78
  8001140:	4619      	mov	r1, r3
- 8001142:	4820      	ldr	r0, [pc, #128]	; (80011c4 <TinyBMS_ReadDeviceTemperatures+0x2e4>)
+ 8001142:	4820      	ldr	r0, [pc, #128]	; (80011c4 <TinyBMS_UART_ReadDeviceTemperatures+0x2e4>)
  8001144:	f004 fe48 	bl	8005dd8 <iprintf>
 					//value of -32768 if not connected
 
 					if(numData == 3) {
  8001148:	6ffb      	ldr	r3, [r7, #124]	; 0x7c
  800114a:	2b03      	cmp	r3, #3
- 800114c:	d108      	bne.n	8001160 <TinyBMS_ReadDeviceTemperatures+0x280>
+ 800114c:	d108      	bne.n	8001160 <TinyBMS_UART_ReadDeviceTemperatures+0x280>
 						int16_t externalTemp2 = DATA[2];  //External Temp Sensor #2
  800114e:	89bb      	ldrh	r3, [r7, #12]
  8001150:	f8a7 3076 	strh.w	r3, [r7, #118]	; 0x76
 						printf("External sensor 2 temperature: %d°C (0.1°C)\n", externalTemp2);
  8001154:	f9b7 3076 	ldrsh.w	r3, [r7, #118]	; 0x76
  8001158:	4619      	mov	r1, r3
- 800115a:	481b      	ldr	r0, [pc, #108]	; (80011c8 <TinyBMS_ReadDeviceTemperatures+0x2e8>)
+ 800115a:	481b      	ldr	r0, [pc, #108]	; (80011c8 <TinyBMS_UART_ReadDeviceTemperatures+0x2e8>)
  800115c:	f004 fe3c 	bl	8005dd8 <iprintf>
 						//value of -32768 if not connected
 					}
@@ -1538,35 +1538,35 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 				retval = 0xAA; //success
  8001160:	23aa      	movs	r3, #170	; 0xaa
  8001162:	f887 3097 	strb.w	r3, [r7, #151]	; 0x97
- 8001166:	e017      	b.n	8001198 <TinyBMS_ReadDeviceTemperatures+0x2b8>
+ 8001166:	e017      	b.n	8001198 <TinyBMS_UART_ReadDeviceTemperatures+0x2b8>
 
 			} else {
 				printf("CRC fail in BMS OK\n");
- 8001168:	4818      	ldr	r0, [pc, #96]	; (80011cc <TinyBMS_ReadDeviceTemperatures+0x2ec>)
+ 8001168:	4818      	ldr	r0, [pc, #96]	; (80011cc <TinyBMS_UART_ReadDeviceTemperatures+0x2ec>)
  800116a:	f004 febb 	bl	8005ee4 <puts>
 				retval = 0xFF; //failure
  800116e:	23ff      	movs	r3, #255	; 0xff
  8001170:	f887 3097 	strb.w	r3, [r7, #151]	; 0x97
- 8001174:	e010      	b.n	8001198 <TinyBMS_ReadDeviceTemperatures+0x2b8>
+ 8001174:	e010      	b.n	8001198 <TinyBMS_UART_ReadDeviceTemperatures+0x2b8>
 			}
 
 		} else {
 			printf("Error: Byte 2 should be 0x00 or 0x1B but was 0x%02X\n", rx_buffer[1]);
  8001176:	7b7b      	ldrb	r3, [r7, #13]
  8001178:	4619      	mov	r1, r3
- 800117a:	4815      	ldr	r0, [pc, #84]	; (80011d0 <TinyBMS_ReadDeviceTemperatures+0x2f0>)
+ 800117a:	4815      	ldr	r0, [pc, #84]	; (80011d0 <TinyBMS_UART_ReadDeviceTemperatures+0x2f0>)
  800117c:	f004 fe2c 	bl	8005dd8 <iprintf>
 			retval = 0xFF; //failure
  8001180:	23ff      	movs	r3, #255	; 0xff
  8001182:	f887 3097 	strb.w	r3, [r7, #151]	; 0x97
- 8001186:	e007      	b.n	8001198 <TinyBMS_ReadDeviceTemperatures+0x2b8>
+ 8001186:	e007      	b.n	8001198 <TinyBMS_UART_ReadDeviceTemperatures+0x2b8>
 		}
 
 	} else {
 		printf("Error: Byte 1 should be 0xAA but was 0x%02X\n", rx_buffer[0]);
  8001188:	7b3b      	ldrb	r3, [r7, #12]
  800118a:	4619      	mov	r1, r3
- 800118c:	4811      	ldr	r0, [pc, #68]	; (80011d4 <TinyBMS_ReadDeviceTemperatures+0x2f4>)
+ 800118c:	4811      	ldr	r0, [pc, #68]	; (80011d4 <TinyBMS_UART_ReadDeviceTemperatures+0x2f4>)
  800118e:	f004 fe23 	bl	8005dd8 <iprintf>
 		retval = 0xFF; //failure
  8001192:	23ff      	movs	r3, #255	; 0xff
@@ -1580,26 +1580,26 @@ uint8_t TinyBMS_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
  800119e:	3798      	adds	r7, #152	; 0x98
  80011a0:	46bd      	mov	sp, r7
  80011a2:	bd80      	pop	{r7, pc}
- 80011a4:	08008754 	.word	0x08008754
- 80011a8:	08008178 	.word	0x08008178
- 80011ac:	08008068 	.word	0x08008068
- 80011b0:	08008074 	.word	0x08008074
- 80011b4:	08008088 	.word	0x08008088
- 80011b8:	08008248 	.word	0x08008248
- 80011bc:	08008774 	.word	0x08008774
- 80011c0:	0800878c 	.word	0x0800878c
- 80011c4:	080087bc 	.word	0x080087bc
- 80011c8:	080087ec 	.word	0x080087ec
- 80011cc:	08008304 	.word	0x08008304
- 80011d0:	080081f4 	.word	0x080081f4
- 80011d4:	0800810c 	.word	0x0800810c
+ 80011a4:	08008bf0 	.word	0x08008bf0
+ 80011a8:	08008160 	.word	0x08008160
+ 80011ac:	08008070 	.word	0x08008070
+ 80011b0:	0800807c 	.word	0x0800807c
+ 80011b4:	08008090 	.word	0x08008090
+ 80011b8:	0800817c 	.word	0x0800817c
+ 80011bc:	08008c14 	.word	0x08008c14
+ 80011c0:	08008c2c 	.word	0x08008c2c
+ 80011c4:	08008c5c 	.word	0x08008c5c
+ 80011c8:	08008c8c 	.word	0x08008c8c
+ 80011cc:	080082a0 	.word	0x080082a0
+ 80011d0:	080086c0 	.word	0x080086c0
+ 80011d4:	08008114 	.word	0x08008114
 
 080011d8 <CRC16>:
 	return retval;
 }
 
 
-/*********** CRC Calculation ***********/
+/********************** CRC Calculation **********************/
 static uint16_t CRC16(const uint8_t* data, uint16_t length) {
  80011d8:	b480      	push	{r7}
  80011da:	b085      	sub	sp, #20
@@ -1649,7 +1649,7 @@ static uint16_t CRC16(const uint8_t* data, uint16_t length) {
  8001220:	46bd      	mov	sp, r7
  8001222:	f85d 7b04 	ldr.w	r7, [sp], #4
  8001226:	4770      	bx	lr
- 8001228:	08008f14 	.word	0x08008f14
+ 8001228:	080093d4 	.word	0x080093d4
 
 0800122c <main>:
 /**
@@ -1720,7 +1720,6 @@ int main(void)
  800126e:	2200      	movs	r2, #0
  8001270:	801a      	strh	r2, [r3, #0]
 
-
   if((res = HAL_UART_Receive_IT(&huart2, (uint8_t*)rx, readLen)) == HAL_OK) {
  8001272:	4b1a      	ldr	r3, [pc, #104]	; (80012dc <main+0xb0>)
  8001274:	881b      	ldrh	r3, [r3, #0]
@@ -1764,15 +1763,15 @@ int main(void)
 	  printf("< HAL_BUSY\n");
  80012c2:	480e      	ldr	r0, [pc, #56]	; (80012fc <main+0xd0>)
  80012c4:	f004 fe0e 	bl	8005ee4 <puts>
-  while(TinyBMS_ReadOnlineStatus(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadLifetimeCounter(&huart2) != 0xAA) {}
-  while(TinyBMS_ReadEstimatedSOCValue(&huart2) != 0xAA) {}
-  */
-
-  while(TinyBMS_ReadDeviceTemperatures(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadOnlineStatus(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadLifetimeCounter(&huart2) != 0xAA) {}
+  //while(TinyBMS_UART_ReadEstimatedSOCValue(&huart2) != 0xAA) {}
+  while(TinyBMS_UART_ReadDeviceTemperatures(&huart2) != 0xAA) {}
  80012c8:	bf00      	nop
  80012ca:	4809      	ldr	r0, [pc, #36]	; (80012f0 <main+0xc4>)
- 80012cc:	f7ff fe08 	bl	8000ee0 <TinyBMS_ReadDeviceTemperatures>
+ 80012cc:	f7ff fe08 	bl	8000ee0 <TinyBMS_UART_ReadDeviceTemperatures>
  80012d0:	4603      	mov	r3, r0
  80012d2:	2baa      	cmp	r3, #170	; 0xaa
  80012d4:	d1f9      	bne.n	80012ca <main+0x9e>
@@ -1790,9 +1789,9 @@ int main(void)
  80012e8:	200001fe 	.word	0x200001fe
  80012ec:	20000698 	.word	0x20000698
  80012f0:	20000768 	.word	0x20000768
- 80012f4:	08008d70 	.word	0x08008d70
- 80012f8:	08008d78 	.word	0x08008d78
- 80012fc:	08008d98 	.word	0x08008d98
+ 80012f4:	08009230 	.word	0x08009230
+ 80012f8:	08009238 	.word	0x08009238
+ 80012fc:	08009258 	.word	0x08009258
 
 08001300 <SystemClock_Config>:
 /**
@@ -2821,8 +2820,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
  8001950:	46bd      	mov	sp, r7
  8001952:	bd80      	pop	{r7, pc}
  8001954:	40004400 	.word	0x40004400
- 8001958:	08008da4 	.word	0x08008da4
- 800195c:	08008dc4 	.word	0x08008dc4
+ 8001958:	08009264 	.word	0x08009264
+ 800195c:	08009284 	.word	0x08009284
 
 08001960 <stateUART>:
 void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {
@@ -2937,15 +2936,15 @@ const char * stateUART(HAL_UART_StateTypeDef State) {
  8001a4c:	f85d 7b04 	ldr.w	r7, [sp], #4
  8001a50:	4770      	bx	lr
  8001a52:	bf00      	nop
- 8001a54:	08008e4c 	.word	0x08008e4c
- 8001a58:	08008e64 	.word	0x08008e64
- 8001a5c:	08008e7c 	.word	0x08008e7c
- 8001a60:	08008e90 	.word	0x08008e90
- 8001a64:	08008ea8 	.word	0x08008ea8
- 8001a68:	08008ec0 	.word	0x08008ec0
- 8001a6c:	08008edc 	.word	0x08008edc
- 8001a70:	08008ef4 	.word	0x08008ef4
- 8001a74:	08008f0c 	.word	0x08008f0c
+ 8001a54:	0800930c 	.word	0x0800930c
+ 8001a58:	08009324 	.word	0x08009324
+ 8001a5c:	0800933c 	.word	0x0800933c
+ 8001a60:	08009350 	.word	0x08009350
+ 8001a64:	08009368 	.word	0x08009368
+ 8001a68:	08009380 	.word	0x08009380
+ 8001a6c:	0800939c 	.word	0x0800939c
+ 8001a70:	080093b4 	.word	0x080093b4
+ 8001a74:	080093cc 	.word	0x080093cc
 
 08001a78 <Error_Handler>:
 /**
@@ -4063,7 +4062,7 @@ LoopFillZerobss:
   ldr r1, =_edata
  8001fe8:	200001dc 	.word	0x200001dc
   ldr r2, =_sidata
- 8001fec:	0800951c 	.word	0x0800951c
+ 8001fec:	080099dc 	.word	0x080099dc
   ldr r2, =_sbss
  8001ff0:	200001dc 	.word	0x200001dc
   ldr r4, =_ebss
@@ -7513,7 +7512,7 @@ HAL_StatusTypeDef HAL_RCC_ClockConfig(RCC_ClkInitTypeDef  *RCC_ClkInitStruct, ui
  8003382:	bf00      	nop
  8003384:	40023c00 	.word	0x40023c00
  8003388:	40023800 	.word	0x40023800
- 800338c:	08009114 	.word	0x08009114
+ 800338c:	080095d4 	.word	0x080095d4
  8003390:	20000000 	.word	0x20000000
  8003394:	20000004 	.word	0x20000004
 
@@ -7782,7 +7781,7 @@ uint32_t HAL_RCC_GetPCLK1Freq(void)
  8003590:	4618      	mov	r0, r3
  8003592:	bd80      	pop	{r7, pc}
  8003594:	40023800 	.word	0x40023800
- 8003598:	08009124 	.word	0x08009124
+ 8003598:	080095e4 	.word	0x080095e4
 
 0800359c <HAL_RCC_GetPCLK2Freq>:
   * @note   Each time PCLK2 changes, this function must be called to update the
@@ -7808,7 +7807,7 @@ uint32_t HAL_RCC_GetPCLK2Freq(void)
  80035b8:	4618      	mov	r0, r3
  80035ba:	bd80      	pop	{r7, pc}
  80035bc:	40023800 	.word	0x40023800
- 80035c0:	08009124 	.word	0x08009124
+ 80035c0:	080095e4 	.word	0x080095e4
 
 080035c4 <HAL_RCCEx_PeriphCLKConfig>:
   *         the backup registers) are set to their reset values.
@@ -13083,10 +13082,10 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  80054de:	4798      	blx	r3
  80054e0:	3601      	adds	r6, #1
  80054e2:	e7f2      	b.n	80054ca <__libc_init_array+0x1e>
- 80054e4:	08009514 	.word	0x08009514
- 80054e8:	08009514 	.word	0x08009514
- 80054ec:	08009514 	.word	0x08009514
- 80054f0:	08009518 	.word	0x08009518
+ 80054e4:	080099d4 	.word	0x080099d4
+ 80054e8:	080099d4 	.word	0x080099d4
+ 80054ec:	080099d4 	.word	0x080099d4
+ 80054f0:	080099d8 	.word	0x080099d8
 
 080054f4 <memset>:
  80054f4:	4402      	add	r2, r0
@@ -13524,11 +13523,11 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  800591c:	e7ee      	b.n	80058fc <_printf_float+0x2b8>
  800591e:	bf00      	nop
  8005920:	7fefffff 	.word	0x7fefffff
- 8005924:	08009130 	.word	0x08009130
- 8005928:	08009134 	.word	0x08009134
- 800592c:	0800913c 	.word	0x0800913c
- 8005930:	08009138 	.word	0x08009138
- 8005934:	08009140 	.word	0x08009140
+ 8005924:	080095f0 	.word	0x080095f0
+ 8005928:	080095f4 	.word	0x080095f4
+ 800592c:	080095fc 	.word	0x080095fc
+ 8005930:	080095f8 	.word	0x080095f8
+ 8005934:	08009600 	.word	0x08009600
  8005938:	9a0a      	ldr	r2, [sp, #40]	; 0x28
  800593a:	6da3      	ldr	r3, [r4, #88]	; 0x58
  800593c:	429a      	cmp	r2, r3
@@ -14019,8 +14018,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8005dc8:	f104 0619 	add.w	r6, r4, #25
  8005dcc:	e7f5      	b.n	8005dba <_printf_i+0x22e>
  8005dce:	bf00      	nop
- 8005dd0:	08009142 	.word	0x08009142
- 8005dd4:	08009153 	.word	0x08009153
+ 8005dd0:	08009602 	.word	0x08009602
+ 8005dd4:	08009613 	.word	0x08009613
 
 08005dd8 <iprintf>:
  8005dd8:	b40f      	push	{r0, r1, r2, r3}
@@ -14140,9 +14139,9 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8005ed2:	6022      	str	r2, [r4, #0]
  8005ed4:	701d      	strb	r5, [r3, #0]
  8005ed6:	e7db      	b.n	8005e90 <_puts_r+0x88>
- 8005ed8:	08009218 	.word	0x08009218
- 8005edc:	08009238 	.word	0x08009238
- 8005ee0:	080091f8 	.word	0x080091f8
+ 8005ed8:	080096d8 	.word	0x080096d8
+ 8005edc:	080096f8 	.word	0x080096f8
+ 8005ee0:	080096b8 	.word	0x080096b8
 
 08005ee4 <puts>:
  8005ee4:	4b02      	ldr	r3, [pc, #8]	; (8005ef0 <puts+0xc>)
@@ -14224,9 +14223,9 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8005f84:	f04f 37ff 	mov.w	r7, #4294967295
  8005f88:	e7ea      	b.n	8005f60 <__swbuf_r+0x6c>
  8005f8a:	bf00      	nop
- 8005f8c:	08009218 	.word	0x08009218
- 8005f90:	08009238 	.word	0x08009238
- 8005f94:	080091f8 	.word	0x080091f8
+ 8005f8c:	080096d8 	.word	0x080096d8
+ 8005f90:	080096f8 	.word	0x080096f8
+ 8005f94:	080096b8 	.word	0x080096b8
 
 08005f98 <__swsetup_r>:
  8005f98:	4b32      	ldr	r3, [pc, #200]	; (8006064 <__swsetup_r+0xcc>)
@@ -14318,9 +14317,9 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8006060:	e7f7      	b.n	8006052 <__swsetup_r+0xba>
  8006062:	bf00      	nop
  8006064:	2000000c 	.word	0x2000000c
- 8006068:	08009218 	.word	0x08009218
- 800606c:	08009238 	.word	0x08009238
- 8006070:	080091f8 	.word	0x080091f8
+ 8006068:	080096d8 	.word	0x080096d8
+ 800606c:	080096f8 	.word	0x080096f8
+ 8006070:	080096b8 	.word	0x080096b8
 
 08006074 <quorem>:
  8006074:	e92d 4ff7 	stmdb	sp!, {r0, r1, r2, r4, r5, r6, r7, r8, r9, sl, fp, lr}
@@ -14717,15 +14716,15 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  800647c:	3fc68a28 	.word	0x3fc68a28
  8006480:	509f79fb 	.word	0x509f79fb
  8006484:	3fd34413 	.word	0x3fd34413
- 8006488:	08009171 	.word	0x08009171
- 800648c:	08009188 	.word	0x08009188
+ 8006488:	08009631 	.word	0x08009631
+ 800648c:	08009648 	.word	0x08009648
  8006490:	7ff00000 	.word	0x7ff00000
- 8006494:	0800916d 	.word	0x0800916d
- 8006498:	08009164 	.word	0x08009164
- 800649c:	08009141 	.word	0x08009141
+ 8006494:	0800962d 	.word	0x0800962d
+ 8006498:	08009624 	.word	0x08009624
+ 800649c:	08009601 	.word	0x08009601
  80064a0:	3ff80000 	.word	0x3ff80000
- 80064a4:	080092e0 	.word	0x080092e0
- 80064a8:	080091e7 	.word	0x080091e7
+ 80064a4:	080097a0 	.word	0x080097a0
+ 80064a8:	080096a7 	.word	0x080096a7
  80064ac:	6a63      	ldr	r3, [r4, #36]	; 0x24
  80064ae:	9a00      	ldr	r2, [sp, #0]
  80064b0:	601a      	str	r2, [r3, #0]
@@ -15015,8 +15014,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  80067cc:	f8dd a01c 	ldr.w	sl, [sp, #28]
  80067d0:	e04a      	b.n	8006868 <_dtoa_r+0x6d8>
  80067d2:	bf00      	nop
- 80067d4:	080092e0 	.word	0x080092e0
- 80067d8:	080092b8 	.word	0x080092b8
+ 80067d4:	080097a0 	.word	0x080097a0
+ 80067d8:	08009778 	.word	0x08009778
  80067dc:	3ff00000 	.word	0x3ff00000
  80067e0:	40240000 	.word	0x40240000
  80067e4:	401c0000 	.word	0x401c0000
@@ -15602,9 +15601,9 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8006d54:	f000 faa4 	bl	80072a0 <__multadd>
  8006d58:	4683      	mov	fp, r0
  8006d5a:	e7eb      	b.n	8006d34 <_dtoa_r+0xba4>
- 8006d5c:	080091e7 	.word	0x080091e7
- 8006d60:	08009140 	.word	0x08009140
- 8006d64:	08009164 	.word	0x08009164
+ 8006d5c:	080096a7 	.word	0x080096a7
+ 8006d60:	08009600 	.word	0x08009600
+ 8006d64:	08009624 	.word	0x08009624
 
 08006d68 <__sflush_r>:
  8006d68:	898a      	ldrh	r2, [r1, #12]
@@ -15780,9 +15779,9 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8006eda:	bf08      	it	eq
  8006edc:	68ec      	ldreq	r4, [r5, #12]
  8006ede:	e7da      	b.n	8006e96 <_fflush_r+0x22>
- 8006ee0:	08009218 	.word	0x08009218
- 8006ee4:	08009238 	.word	0x08009238
- 8006ee8:	080091f8 	.word	0x080091f8
+ 8006ee0:	080096d8 	.word	0x080096d8
+ 8006ee4:	080096f8 	.word	0x080096f8
+ 8006ee8:	080096b8 	.word	0x080096b8
 
 08006eec <std>:
  8006eec:	2300      	movs	r3, #0
@@ -15907,7 +15906,7 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8006ffe:	61a3      	str	r3, [r4, #24]
  8007000:	e7d2      	b.n	8006fa8 <__sinit+0xc>
  8007002:	bf00      	nop
- 8007004:	0800912c 	.word	0x0800912c
+ 8007004:	080095ec 	.word	0x080095ec
  8007008:	08006f35 	.word	0x08006f35
 
 0800700c <__sfp>:
@@ -15962,7 +15961,7 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  800708a:	603b      	str	r3, [r7, #0]
  800708c:	e7ee      	b.n	800706c <__sfp+0x60>
  800708e:	bf00      	nop
- 8007090:	0800912c 	.word	0x0800912c
+ 8007090:	080095ec 	.word	0x080095ec
  8007094:	ffff0001 	.word	0xffff0001
 
 08007098 <_fwalk_reent>:
@@ -16167,8 +16166,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  800724c:	e9c0 3303 	strd	r3, r3, [r0, #12]
  8007250:	e7f7      	b.n	8007242 <_Balloc+0x66>
  8007252:	bf00      	nop
- 8007254:	08009171 	.word	0x08009171
- 8007258:	08009258 	.word	0x08009258
+ 8007254:	08009631 	.word	0x08009631
+ 8007258:	08009718 	.word	0x08009718
 
 0800725c <_Bfree>:
  800725c:	b570      	push	{r4, r5, r6, lr}
@@ -16196,8 +16195,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8007290:	6021      	str	r1, [r4, #0]
  8007292:	f843 4022 	str.w	r4, [r3, r2, lsl #2]
  8007296:	bd70      	pop	{r4, r5, r6, pc}
- 8007298:	08009171 	.word	0x08009171
- 800729c:	08009258 	.word	0x08009258
+ 8007298:	08009631 	.word	0x08009631
+ 800729c:	08009718 	.word	0x08009718
 
 080072a0 <__multadd>:
  80072a0:	e92d 41f0 	stmdb	sp!, {r4, r5, r6, r7, r8, lr}
@@ -16253,8 +16252,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8007324:	4620      	mov	r0, r4
  8007326:	e8bd 81f0 	ldmia.w	sp!, {r4, r5, r6, r7, r8, pc}
  800732a:	bf00      	nop
- 800732c:	080091e7 	.word	0x080091e7
- 8007330:	08009258 	.word	0x08009258
+ 800732c:	080096a7 	.word	0x080096a7
+ 8007330:	08009718 	.word	0x08009718
 
 08007334 <__hi0bits>:
  8007334:	0c03      	lsrs	r3, r0, #16
@@ -16348,8 +16347,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  80073f2:	6103      	str	r3, [r0, #16]
  80073f4:	bd10      	pop	{r4, pc}
  80073f6:	bf00      	nop
- 80073f8:	080091e7 	.word	0x080091e7
- 80073fc:	08009258 	.word	0x08009258
+ 80073f8:	080096a7 	.word	0x080096a7
+ 80073fc:	08009718 	.word	0x08009718
 
 08007400 <__multiply>:
  8007400:	e92d 4ff0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, sl, fp, lr}
@@ -16469,8 +16468,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  800753e:	3f01      	subs	r7, #1
  8007540:	e7a1      	b.n	8007486 <__multiply+0x86>
  8007542:	bf00      	nop
- 8007544:	080091e7 	.word	0x080091e7
- 8007548:	08009258 	.word	0x08009258
+ 8007544:	080096a7 	.word	0x080096a7
+ 8007548:	08009718 	.word	0x08009718
 
 0800754c <__pow5mult>:
  800754c:	e92d 43f8 	stmdb	sp!, {r3, r4, r5, r6, r7, r8, r9, lr}
@@ -16538,9 +16537,9 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  80075ec:	4638      	mov	r0, r7
  80075ee:	e8bd 83f8 	ldmia.w	sp!, {r3, r4, r5, r6, r7, r8, r9, pc}
  80075f2:	bf00      	nop
- 80075f4:	080093a8 	.word	0x080093a8
- 80075f8:	08009171 	.word	0x08009171
- 80075fc:	08009258 	.word	0x08009258
+ 80075f4:	08009868 	.word	0x08009868
+ 80075f8:	08009631 	.word	0x08009631
+ 80075fc:	08009718 	.word	0x08009718
 
 08007600 <__lshift>:
  8007600:	e92d 47f0 	stmdb	sp!, {r4, r5, r6, r7, r8, r9, sl, lr}
@@ -16619,8 +16618,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  80076ca:	d8f9      	bhi.n	80076c0 <__lshift+0xc0>
  80076cc:	e7ea      	b.n	80076a4 <__lshift+0xa4>
  80076ce:	bf00      	nop
- 80076d0:	080091e7 	.word	0x080091e7
- 80076d4:	08009258 	.word	0x08009258
+ 80076d0:	080096a7 	.word	0x080096a7
+ 80076d4:	08009718 	.word	0x08009718
 
 080076d8 <__mcmp>:
  80076d8:	b530      	push	{r4, r5, lr}
@@ -16745,8 +16744,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8007812:	e7e0      	b.n	80077d6 <__mdiff+0xc6>
  8007814:	3e01      	subs	r6, #1
  8007816:	e7ea      	b.n	80077ee <__mdiff+0xde>
- 8007818:	080091e7 	.word	0x080091e7
- 800781c:	08009258 	.word	0x08009258
+ 8007818:	080096a7 	.word	0x080096a7
+ 800781c:	08009718 	.word	0x08009718
 
 08007820 <__d2b>:
  8007820:	e92d 43f7 	stmdb	sp!, {r0, r1, r2, r4, r5, r6, r7, r8, r9, lr}
@@ -16815,8 +16814,8 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  80078c6:	f7ff fd35 	bl	8007334 <__hi0bits>
  80078ca:	ebc0 1042 	rsb	r0, r0, r2, lsl #5
  80078ce:	e7df      	b.n	8007890 <__d2b+0x70>
- 80078d0:	080091e7 	.word	0x080091e7
- 80078d4:	08009258 	.word	0x08009258
+ 80078d0:	080096a7 	.word	0x080096a7
+ 80078d4:	08009718 	.word	0x08009718
 
 080078d8 <_calloc_r>:
  80078d8:	b513      	push	{r0, r1, r4, lr}
@@ -17271,14 +17270,14 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8007cd8:	f7fd ff58 	bl	8005b8c <_printf_i>
  8007cdc:	e7e4      	b.n	8007ca8 <_vfiprintf_r+0x208>
  8007cde:	bf00      	nop
- 8007ce0:	08009218 	.word	0x08009218
- 8007ce4:	08009238 	.word	0x08009238
- 8007ce8:	080091f8 	.word	0x080091f8
- 8007cec:	080093b4 	.word	0x080093b4
- 8007cf0:	080093be 	.word	0x080093be
+ 8007ce0:	080096d8 	.word	0x080096d8
+ 8007ce4:	080096f8 	.word	0x080096f8
+ 8007ce8:	080096b8 	.word	0x080096b8
+ 8007cec:	08009874 	.word	0x08009874
+ 8007cf0:	0800987e 	.word	0x0800987e
  8007cf4:	08005645 	.word	0x08005645
  8007cf8:	08007a7b 	.word	0x08007a7b
- 8007cfc:	080093ba 	.word	0x080093ba
+ 8007cfc:	0800987a 	.word	0x0800987a
 
 08007d00 <_sbrk_r>:
  8007d00:	b538      	push	{r3, r4, r5, lr}
@@ -17395,9 +17394,9 @@ static HAL_StatusTypeDef USB_CoreReset(USB_OTG_GlobalTypeDef *USBx)
  8007df4:	e7f3      	b.n	8007dde <__assert_func+0x12>
  8007df6:	bf00      	nop
  8007df8:	2000000c 	.word	0x2000000c
- 8007dfc:	080093c5 	.word	0x080093c5
- 8007e00:	080093d2 	.word	0x080093d2
- 8007e04:	08009400 	.word	0x08009400
+ 8007dfc:	08009885 	.word	0x08009885
+ 8007e00:	08009892 	.word	0x08009892
+ 8007e04:	080098c0 	.word	0x080098c0
 
 08007e08 <_close_r>:
  8007e08:	b538      	push	{r3, r4, r5, lr}
