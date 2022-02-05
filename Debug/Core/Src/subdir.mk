@@ -6,27 +6,27 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Core/Src/TinyBMS.c \
+../Core/Src/it.c \
 ../Core/Src/main.c \
-../Core/Src/stm32f7xx_hal_msp.c \
-../Core/Src/stm32f7xx_it.c \
+../Core/Src/msp.c \
 ../Core/Src/syscalls.c \
 ../Core/Src/sysmem.c \
 ../Core/Src/system_stm32f7xx.c 
 
 OBJS += \
 ./Core/Src/TinyBMS.o \
+./Core/Src/it.o \
 ./Core/Src/main.o \
-./Core/Src/stm32f7xx_hal_msp.o \
-./Core/Src/stm32f7xx_it.o \
+./Core/Src/msp.o \
 ./Core/Src/syscalls.o \
 ./Core/Src/sysmem.o \
 ./Core/Src/system_stm32f7xx.o 
 
 C_DEPS += \
 ./Core/Src/TinyBMS.d \
+./Core/Src/it.d \
 ./Core/Src/main.d \
-./Core/Src/stm32f7xx_hal_msp.d \
-./Core/Src/stm32f7xx_it.d \
+./Core/Src/msp.d \
 ./Core/Src/syscalls.d \
 ./Core/Src/sysmem.d \
 ./Core/Src/system_stm32f7xx.d 
@@ -39,7 +39,7 @@ Core/Src/%.o: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/TinyBMS.d ./Core/Src/TinyBMS.o ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/stm32f7xx_hal_msp.d ./Core/Src/stm32f7xx_hal_msp.o ./Core/Src/stm32f7xx_it.d ./Core/Src/stm32f7xx_it.o ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/system_stm32f7xx.d ./Core/Src/system_stm32f7xx.o
+	-$(RM) ./Core/Src/TinyBMS.d ./Core/Src/TinyBMS.o ./Core/Src/it.d ./Core/Src/it.o ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/msp.d ./Core/Src/msp.o ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/system_stm32f7xx.d ./Core/Src/system_stm32f7xx.o
 
 .PHONY: clean-Core-2f-Src
 

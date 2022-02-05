@@ -1,141 +1,94 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
+/***********************************************
+* @file main.h
+* @brief Spartan Hyperloop TinyBMS Testing
+* @author Oliver Moore
+* @version 1.2
+* @date 02-03-2022
+***********************************************/
 
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* Includes ------------------------------------------------------------------*/
-#include "stm32f7xx_hal.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <math.h>
+#include "stm32f7xx_hal.h"
 #include "TinyBMS.h"
-/* USER CODE END Includes */
 
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
-
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
-
-/* USER CODE END EC */
-
-/* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
-
-/* Exported functions prototypes ---------------------------------------------*/
+/*************** Function Prototypes ***************/
+void UART_Test_API(void);
+void CAN_Test_API(void);
+void SystemClock_Config_HSE(uint8_t clock_freq);
+void GPIO_Init(void);
+void UART_Init(void);
+void TIM_Init(void);
+void CAN_Init(uint8_t can_bitrate);
+void CAN_Filter_Config(void);
+void CAN1_Tx(void);
+void LED_Manage_Output(uint8_t led_num);
+void Send_Response(uint32_t StdId);
 void Error_Handler(void);
 
-/* USER CODE BEGIN EFP */
+/*************** Macros ***************/
+#define CMD_SUCCESS	0xAA
+#define CMD_FAILURE	0xFF
 
-/* USER CODE END EFP */
+#define SYS_CLOCK_FREQ_50MHZ 	50
+#define SYS_CLOCK_FREQ_84MHZ 	84
+#define SYS_CLOCK_FREQ_120MHZ 	120
 
-/* Private defines -----------------------------------------------------------*/
-#define USER_Btn_Pin GPIO_PIN_13
-#define USER_Btn_GPIO_Port GPIOC
+#define FALSE 	0
+#define TRUE 	1
+
+/* CAN Speed Macros based on SYSCLK freq */
+#define CANBITRATE_1MBIT_50MHZ			0
+#define CANBITRATE_500KBIT_50MHZ 		1
+#define CANBITRATE_250KBIT_50MHZ 		2
+#define CANBITRATE_125KBIT_50MHZ 		3
+
+/************  GPIO Macros ************/
+/* HSE Bypass */
 #define MCO_Pin GPIO_PIN_0
 #define MCO_GPIO_Port GPIOH
-#define RMII_MDC_Pin GPIO_PIN_1
-#define RMII_MDC_GPIO_Port GPIOC
-#define RMII_REF_CLK_Pin GPIO_PIN_1
-#define RMII_REF_CLK_GPIO_Port GPIOA
-#define RMII_MDIO_Pin GPIO_PIN_2
-#define RMII_MDIO_GPIO_Port GPIOA
-#define RMII_CRS_DV_Pin GPIO_PIN_7
-#define RMII_CRS_DV_GPIO_Port GPIOA
-#define RMII_RXD0_Pin GPIO_PIN_4
-#define RMII_RXD0_GPIO_Port GPIOC
-#define RMII_RXD1_Pin GPIO_PIN_5
-#define RMII_RXD1_GPIO_Port GPIOC
-#define LD1_Pin GPIO_PIN_0
-#define LD1_GPIO_Port GPIOB
-#define RMII_TXD1_Pin GPIO_PIN_13
-#define RMII_TXD1_GPIO_Port GPIOB
-#define LD3_Pin GPIO_PIN_14
-#define LD3_GPIO_Port GPIOB
-#define STLK_RX_Pin GPIO_PIN_8
-#define STLK_RX_GPIO_Port GPIOD
-#define STLK_TX_Pin GPIO_PIN_9
-#define STLK_TX_GPIO_Port GPIOD
-#define USB_PowerSwitchOn_Pin GPIO_PIN_6
-#define USB_PowerSwitchOn_GPIO_Port GPIOG
-#define USB_OverCurrent_Pin GPIO_PIN_7
-#define USB_OverCurrent_GPIO_Port GPIOG
-#define USB_SOF_Pin GPIO_PIN_8
-#define USB_SOF_GPIO_Port GPIOA
-#define USB_VBUS_Pin GPIO_PIN_9
-#define USB_VBUS_GPIO_Port GPIOA
-#define USB_ID_Pin GPIO_PIN_10
-#define USB_ID_GPIO_Port GPIOA
-#define USB_DM_Pin GPIO_PIN_11
-#define USB_DM_GPIO_Port GPIOA
-#define USB_DP_Pin GPIO_PIN_12
-#define USB_DP_GPIO_Port GPIOA
+
+/* Nucleo-144 onboard LED1,2,3 */
+#define LED1_Pin GPIO_PIN_0
+#define LED2_Pin GPIO_PIN_7
+#define LED3_Pin GPIO_PIN_14
+#define LED_GPIO_Port GPIOB
+
+/* Nucleo-144 onboard user button */
+#define USER_Btn_Pin GPIO_PIN_13
+#define USER_Btn_GPIO_Port GPIOC
+
+/* Serial Wire Debug (SWD) */
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
-#define RMII_TX_EN_Pin GPIO_PIN_11
-#define RMII_TX_EN_GPIO_Port GPIOG
-#define RMII_TXD0_Pin GPIO_PIN_13
-#define RMII_TXD0_GPIO_Port GPIOG
 #define SW0_Pin GPIO_PIN_3
 #define SW0_GPIO_Port GPIOB
-#define LD2_Pin GPIO_PIN_7
-#define LD2_GPIO_Port GPIOB
-/* USER CODE BEGIN Private defines */
-//USART2: PA3 PD5 for TinyBMS communication
-#define USART2_RX_Pin GPIO_PIN_3
-#define USART2_RX_GPIO_Port GPIOA
+
+/* USART2: PA3 PD5 for TinyBMS communication */
 #define USART2_TX_Pin GPIO_PIN_5
-#define USART2_TX_GPIO_Port GPIOD
+#define USART2_RX_Pin GPIO_PIN_6
+#define USART2_GPIO_Port GPIOD
 
 #define TinyBMS_TX_Pin USART2_TX_Pin
-#define TinyBMS_TX_GPIO_Port USART2_TX_GPIO_Port
-#define TinyBMS_RX_Pin USART2_TX_Pin
-#define TinyBMS_RX_GPIO_Port USART2_TX_GPIO_Port
+#define TinyBMS_RX_Pin USART2_RX_Pin
+#define TinyBMS_GPIO_Port USART2_GPIO_Port
 
-//USART3: PD8 PD9 for ST_LINK debugging (printf ITM)
-#define USART3_TX_Pin STLK_RX_Pin
-#define USART3_TX_GPIO_Port GPIOD
-#define USART3_RX_Pin STLK_TX_Pin
-#define USART3_RX_GPIO_Port GPIOD
-/* USER CODE END Private defines */
+/* USART3: PD8 PD9 for ST-LINK Debug (printf ITM) */
+#define USART3_TX_Pin GPIO_PIN_8
+#define USART3_RX_Pin GPIO_PIN_9
+#define USART3_GPIO_Port GPIOD
 
-#ifdef __cplusplus
-}
-#endif
+#define STLK_TX_Pin USART3_TX_Pin
+#define STLK_RX_Pin USART3_RX_Pin
+#define STLK_GPIO_Port USART3_GPIO_Port
 
-#endif /* __MAIN_H */
+/* CAN1 */
+#define CAN1_RX_PIN	GPIO_PIN_0
+#define CAN1_TX_PIN	GPIO_PIN_1
+#define CAN1_GPIO_Port GPIOD
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

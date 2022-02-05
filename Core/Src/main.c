@@ -1,634 +1,519 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+/***********************************************
+* @file main.c
+* @brief Spartan Hyperloop TinyBMS Testing
+* @author Oliver Moore
+* @version 1.2
+* @date 02-03-2022
+***********************************************/
 #include "main.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
-
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
+TIM_HandleTypeDef htim6;
+CAN_RxHeaderTypeDef RxHeader;
 
-PCD_HandleTypeDef hpcd_USB_OTG_FS;
+uint8_t request_count = 0;
+uint8_t led_num = 0;
 
-/* USER CODE BEGIN PV */
+int main(void) {
+	/* Resets all peripherals, initializes the flash interface and Systick. */
+	HAL_Init();
 
-/* USER CODE END PV */
+	/* Configure SYSCLK to 50MHZ */
+	SystemClock_Config_HSE(SYS_CLOCK_FREQ_50MHZ);
 
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USART3_UART_Init(void);
-static void MX_USB_OTG_FS_PCD_Init(void);
-static void MX_CAN1_Init(void);
-static void MX_USART2_UART_Init(void);
-/* USER CODE BEGIN PFP */
-void writetoreg(void);
-/* USER CODE END PFP */
+	/* Initialize all configured peripherals */
+	GPIO_Init();
+	UART_Init();
+	TIM_Init();
+	CAN_Init(CANBITRATE_500KBIT_50MHZ);
+	CAN_Filter_Config();
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
+	//Activate Interrupts by setting CAN_IER bits
+	if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+		Error_Handler();
+	}
 
-volatile uint8_t tx[50];
-volatile uint8_t rx[50];
-uint8_t rx1[50];
-uint8_t tx1[50];
-
-volatile uint8_t txCmpl = 0;
-volatile uint8_t rxCmpl = 0;
-volatile uint8_t toTransfer = 0;
-volatile uint8_t wasTransferred = 0;
-
-
-volatile uint16_t rxCount = 0;
-volatile uint16_t readLen = 0;
-volatile uint16_t rxPos2 = 0;
-volatile uint16_t rxPos1 = 0;
-volatile uint16_t wasRead = 0;
-const char * stateUART(HAL_UART_StateTypeDef State);
-
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_USART3_UART_Init();
-  MX_USB_OTG_FS_PCD_Init();
-  MX_CAN1_Init();
-  MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
-
-  // Init
-  HAL_StatusTypeDef res;
-
-  HAL_Delay(10);
-
-  rxCmpl = 0;
-  readLen = 1;
-  wasRead = 0;
-  rxPos1 = 0;
-  rxPos2 = 0;
-
-  if((res = HAL_UART_Receive_IT(&huart2, (uint8_t*)rx, readLen)) == HAL_OK) {
-	  printf("HAL_OK\n");
-  } else if(res == HAL_ERROR) {
-	  printf("< 2 HAL_ERROR %.2X state = %s\n", (uint8_t)huart2.ErrorCode, stateUART(huart2.RxState));
-  } else if(res == HAL_BUSY) {
-	  printf("< HAL_BUSY\n");
-  }
+	//Start CAN
+	if(HAL_CAN_Start(&hcan1) != HAL_OK) {
+		Error_Handler();
+	}
 
 
-  /*** Use commenting to test specific TinyBMS API -- Hangs in while loop unless return is a success (0xAA) ****/
-
-  //int8_t option = 0x01;
-  //uint8_t rl = 0, pl = 0;
-  //uint16_t addr = 0x00;
-  //uint16_t addr[100];
-  //uint16_t data[100];
-
-  //while(TinyBMS_UART_ACK(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadRegBlock(&huart2, rl, addr) != 0xAA) {}
-  //while(TinyBMS_UART_ReadRegIndividual(&huart2, pl, addr[]) != 0xAA) {}
-  //while(TinyBMS_UART_WriteRegBlock(&huart2, pl, addr, data[]) != 0xAA) {}
-  //while(TinyBMS_UART_WriteRegIndividual(&huart2, pl, addr[], data[]) != 0xAA) {}
-  //while(TinyBMS_UART_ReadRegBlockMODBUS(&huart2, addr, rl) != 0xAA) {}
-  //while(TinyBMS_UART_WriteRegBlockMODBUS(&huart2, addr, rl, pl, data[]) != 0xAA) {}
-  //while(TinyBMS_UART_ResetClearEventsStatistics(&huart2, option) != 0xAA) {}
-  //while(TinyBMS_UART_ReadNewestEvents(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadAllEvents(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadBatteryPackVoltage(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadBatteryPackCurrent(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadOnlineStatus(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadLifetimeCounter(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadEstimatedSOCValue(&huart2) != 0xAA) {}
-  while(TinyBMS_UART_ReadDeviceTemperatures(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadBatteryPackCellVoltages(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadSettingsValues(&huart2, option, rl) != 0xAA) {}
-  //while(TinyBMS_UART_ReadVersion(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadVersionExtended(&huart2) != 0xAA) {}
-  //while(TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(&huart2) != 0xAA) {} */
-
-
-  //while(TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, option) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadRegBlock(&hcan1, rl, addr) != 0xAA) {}
-  //while(TinyBMS_CAN_WriteRegBlock(&hcan1, rl, addr, data[]) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadNewestEvents(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadAllEvents(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadOnlineStatus(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadLifetimeCounter(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadDeviceTemperatures(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadBatteryPackCellVoltages(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadSettingsValues(&hcan1, option, rl) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadVersion(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_ReadNodeID(&hcan1) != 0xAA) {}
-  //while(TinyBMS_CAN_WriteNodeID(&hcan1) != 0xAA) {}
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	//UART_Test_API();
+	//CAN_Test_API();
 
   	while(1) {
-  		/* USER CODE END WHILE */
-  		/* USER CODE BEGIN 3 */
 
   	}
-  /* USER CODE END 3 */
 }
 
-/**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+void UART_Test_API(void) {
+	/*
+	int8_t option = 0;
+	uint8_t rl = 0, pl = 0;
+	uint16_t addr = 0x00;
+	//uint16_t addr[100];
+	uint16_t data[100];
+	*/
 
-  /** Configure LSE Drive Capability
-  */
-  HAL_PWR_EnableBkUpAccess();
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 72;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 3;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/*** Uncomment to test specific TinyBMS API -- Hangs in while loop unless success is returned ****/
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_USART3
-                              |RCC_PERIPHCLK_CLK48;
-  PeriphClkInitStruct.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
-  PeriphClkInitStruct.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
-  PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	//while(TinyBMS_UART_ACK(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadRegBlock(&huart2, rl, addr) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadRegIndividual(&huart2, pl, addr[]) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_WriteRegBlock(&huart2, pl, addr, data[]) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_WriteRegIndividual(&huart2, pl, addr[], data[]) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadRegBlockMODBUS(&huart2, addr, rl) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_WriteRegBlockMODBUS(&huart2, addr, rl, pl, data[]) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ResetClearEventsStatistics(&huart2, option) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadNewestEvents(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadAllEvents(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadBatteryPackVoltage(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadBatteryPackCurrent(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadOnlineStatus(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadLifetimeCounter(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadEstimatedSOCValue(&huart2) != CMD_SUCCESS) {}
+	while(TinyBMS_UART_ReadDeviceTemperatures(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadBatteryPackCellVoltages(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadSettingsValues(&huart2, option, rl) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadVersion(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadVersionExtended(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(&huart2) != CMD_SUCCESS) {} */
 }
 
-/**
-  * @brief CAN1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CAN1_Init(void)
-{
+void CAN_Test_API(void) {
+	/*
+	int8_t option = 0;
+	uint8_t rl = 0, pl = 0;
+	uint16_t addr = 0x00;
+	//uint16_t addr[100];
+	uint16_t data[100];
+	*/
 
-  /* USER CODE BEGIN CAN1_Init 0 */
+	/*** Uncomment to test specific TinyBMS API -- Hangs in while() unless success is returned ****/
 
-  /* USER CODE END CAN1_Init 0 */
-
-  /* USER CODE BEGIN CAN1_Init 1 */
-
-  /* USER CODE END CAN1_Init 1 */
-  hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 16;
-  hcan1.Init.Mode = CAN_MODE_NORMAL;
-  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
-  hcan1.Init.TimeTriggeredMode = DISABLE;
-  hcan1.Init.AutoBusOff = DISABLE;
-  hcan1.Init.AutoWakeUp = DISABLE;
-  hcan1.Init.AutoRetransmission = DISABLE;
-  hcan1.Init.ReceiveFifoLocked = DISABLE;
-  hcan1.Init.TransmitFifoPriority = DISABLE;
-  if (HAL_CAN_Init(&hcan1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CAN1_Init 2 */
-
-  /* USER CODE END CAN1_Init 2 */
-
+	//while(TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, option) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadRegBlock(&hcan1, rl, addr) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_WriteRegBlock(&hcan1, rl, addr, data[]) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadNewestEvents(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadAllEvents(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadOnlineStatus(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadLifetimeCounter(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadDeviceTemperatures(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadBatteryPackCellVoltages(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadSettingsValues(&hcan1, option, rl) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadVersion(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_ReadNodeID(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_WriteNodeID(&hcan1) != CMD_SUCCESS) {}
 }
 
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
+void SystemClock_Config_HSE(uint8_t clock_freq) {
+	RCC_OscInitTypeDef osc_init;
+	RCC_ClkInitTypeDef clk_init;
+	uint8_t flash_latency = 0;
 
-  /* USER CODE BEGIN USART2_Init 0 */
-  /* USER CODE END USART2_Init 0 */
+	//Using HSE to derive PLL
+	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+	osc_init.HSEState = RCC_HSE_ON;
+	osc_init.PLL.PLLState = RCC_PLL_ON;
+	osc_init.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 
-  /* USER CODE BEGIN USART2_Init 1 */
+	switch(clock_freq) {
+	case SYS_CLOCK_FREQ_50MHZ: {
+		osc_init.PLL.PLLM = 16;
+		osc_init.PLL.PLLN = 100;
+		osc_init.PLL.PLLP = RCC_PLLP_DIV2;
+		osc_init.PLL.PLLQ = 2;
 
-  //USART2: PA3 PD5 for TinyBMS communication
-  //Verified with UART configuration stated on TinyBMS_Communication_Protocols.pdf page 4
+		clk_init.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | \
+							  RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2);
+		clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+		clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+		clk_init.APB1CLKDivider = RCC_HCLK_DIV2;
+		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
+		flash_latency = 1;
+		break;
+	}
+	case SYS_CLOCK_FREQ_84MHZ: {
+		osc_init.PLL.PLLM = 16;
+		osc_init.PLL.PLLN = 168;
+		osc_init.PLL.PLLP = RCC_PLLP_DIV2;
+		osc_init.PLL.PLLQ = 2;
 
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
+		clk_init.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | \
+							  RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2);
+		clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+		clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+		clk_init.APB1CLKDivider = RCC_HCLK_DIV2;
+		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
+		flash_latency = 2;
+		break;
+	}
+	case SYS_CLOCK_FREQ_120MHZ: {
+		osc_init.PLL.PLLM = 16;
+		osc_init.PLL.PLLN = 240;
+		osc_init.PLL.PLLP = RCC_PLLP_DIV2;
+		osc_init.PLL.PLLQ = 2;
 
-  /* USER CODE END USART2_Init 2 */
+		clk_init.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | \
+							  RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2);
+		clk_init.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+		clk_init.AHBCLKDivider = RCC_SYSCLK_DIV1;
+		clk_init.APB1CLKDivider = RCC_HCLK_DIV4;
+		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
+		flash_latency = 3;
+		break;
+	}
+	default:
+		return;
+	}
 
+	if(HAL_RCC_OscConfig(&osc_init) != HAL_OK) {
+		Error_Handler();
+	}
+
+	if(HAL_RCC_ClockConfig(&clk_init, flash_latency) != HAL_OK) {
+		Error_Handler();
+	}
+
+	//Configure the SYSTICK timer interrupt frequency for every 1ms
+	HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq() / 1000);
+	//Configure SYSTICK
+	HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+	//SYSTICK IRQn interrupt configuration
+	HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/**
-  * @brief USART3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART3_UART_Init(void)
-{
+void GPIO_Init(void) {
+	GPIO_InitTypeDef GPIO_InitStruct;
 
-  /* USER CODE BEGIN USART3_Init 0 */
+	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOD_CLK_ENABLE();
+	//__HAL_RCC_GPIOH_CLK_ENABLE();
 
-  /* USER CODE END USART3_Init 0 */
+	/* Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(LED_GPIO_Port, (LED1_Pin | LED2_Pin | LED3_Pin), GPIO_PIN_RESET);
 
-  /* USER CODE BEGIN USART3_Init 1 */
+	/* Configure GPIO pin : USER_Btn_Pin */
+	GPIO_InitStruct.Pin = USER_Btn_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
 
-  //USART3: PD8 PD9 for ST_LINK debugging (printf ITM)
+	/* Configure GPIO pins : LED1_Pin LED2_Pin LED3_Pin */
+	GPIO_InitStruct.Pin = (LED1_Pin | LED2_Pin | LED3_Pin);
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
-  /* USER CODE END USART3_Init 1 */
-  huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
-  huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
-  huart3.Init.Mode = UART_MODE_TX_RX;
-  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART3_Init 2 */
-
-  /* USER CODE END USART3_Init 2 */
-
+	HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
-/**
-  * @brief USB_OTG_FS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_OTG_FS_PCD_Init(void)
-{
+void UART_Init(void) {
+	//USART2: PD5 PD6 for TinyBMS communication
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 115200;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if(HAL_UART_Init(&huart2) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /* USER CODE BEGIN USB_OTG_FS_Init 0 */
-
-  /* USER CODE END USB_OTG_FS_Init 0 */
-
-  /* USER CODE BEGIN USB_OTG_FS_Init 1 */
-
-  /* USER CODE END USB_OTG_FS_Init 1 */
-  hpcd_USB_OTG_FS.Instance = USB_OTG_FS;
-  hpcd_USB_OTG_FS.Init.dev_endpoints = 6;
-  hpcd_USB_OTG_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_OTG_FS.Init.dma_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_OTG_FS.Init.Sof_enable = ENABLE;
-  hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = ENABLE;
-  hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_OTG_FS_Init 2 */
-
-  /* USER CODE END USB_OTG_FS_Init 2 */
-
+	//USART3: PD8 PD9 for ST-LINK debugging (printf ITM)
+	huart3.Instance = USART3;
+	huart3.Init.BaudRate = 115200;
+	huart3.Init.WordLength = UART_WORDLENGTH_8B;
+	huart3.Init.StopBits = UART_STOPBITS_1;
+	huart3.Init.Parity = UART_PARITY_NONE;
+	huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart3.Init.Mode = UART_MODE_TX_RX;
+	huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if(HAL_UART_Init(&huart3) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOG_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LD1_Pin|LD3_Pin|LD2_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(USB_PowerSwitchOn_GPIO_Port, USB_PowerSwitchOn_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : USER_Btn_Pin */
-  GPIO_InitStruct.Pin = USER_Btn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(USER_Btn_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : RMII_MDC_Pin RMII_RXD0_Pin RMII_RXD1_Pin */
-  GPIO_InitStruct.Pin = RMII_MDC_Pin|RMII_RXD0_Pin|RMII_RXD1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : RMII_REF_CLK_Pin RMII_MDIO_Pin RMII_CRS_DV_Pin */
-  GPIO_InitStruct.Pin = RMII_REF_CLK_Pin|RMII_MDIO_Pin|RMII_CRS_DV_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LD1_Pin LD3_Pin LD2_Pin */
-  GPIO_InitStruct.Pin = LD1_Pin|LD3_Pin|LD2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : RMII_TXD1_Pin */
-  GPIO_InitStruct.Pin = RMII_TXD1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
-  HAL_GPIO_Init(RMII_TXD1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : USB_PowerSwitchOn_Pin */
-  GPIO_InitStruct.Pin = USB_PowerSwitchOn_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(USB_PowerSwitchOn_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : USB_OverCurrent_Pin */
-  GPIO_InitStruct.Pin = USB_OverCurrent_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(USB_OverCurrent_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : RMII_TX_EN_Pin RMII_TXD0_Pin */
-  GPIO_InitStruct.Pin = RMII_TX_EN_Pin|RMII_TXD0_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
-  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
-
+void TIM_Init(void) {
+	//TIM6 - Basic Timer
+	htim6.Instance = TIM6;
+	htim6.Init.Prescaler = 4999;
+	htim6.Init.Period = 10000-1;
+	if(HAL_TIM_Base_Init(&htim6) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
-/* USER CODE BEGIN 4 */
+void CAN_Init(uint8_t can_bitrate) {
+	//CAN1
+	hcan1.Instance = CAN1;
+	hcan1.Init.Mode = CAN_MODE_NORMAL;
+	hcan1.Init.AutoBusOff = ENABLE;
+	hcan1.Init.AutoRetransmission = ENABLE;
+	hcan1.Init.AutoWakeUp = DISABLE;
+	hcan1.Init.ReceiveFifoLocked = DISABLE;
+	hcan1.Init.TimeTriggeredMode = DISABLE;
+	hcan1.Init.TransmitFifoPriority = DISABLE;
+
+	/* Settings related to CAN bit timings (http://www.bittiming.can-wiki.info/) */
+	switch(can_bitrate) {
+	case CANBITRATE_1MBIT_50MHZ:
+		/* ** 1Mbit/s @ 50MHz SYSCLK ** */
+		//prescaler = 5, num_TQ = 10, Seg1 = 8, Seg2 = 1, Sample point at 90.0, register CAN_BTR = 0x00070004
+		hcan1.Init.Prescaler = 5;
+		hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+		hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
+		hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+		break;
+	case CANBITRATE_500KBIT_50MHZ:
+		/* ** 500kbit/s @ 50MHz SYSCLK ** */
+		//prescaler = 5, num_TQ = 10, Seg1 = 8, Seg2 = 1, Sample point at 90.0, register CAN_BTR = 0x00070009
+		hcan1.Init.Prescaler = 10;
+		hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+		hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
+		hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+		break;
+	case CANBITRATE_250KBIT_50MHZ:
+		/* ** 250kbit/s @ 50MHz SYSCLK ** */
+		//prescaler = 5, num_TQ = 10, Seg1 = 8, Seg2 = 1, Sample point at 90.0, register CAN_BTR = 0x00070013
+		hcan1.Init.Prescaler = 20;
+		hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+		hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
+		hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+		break;
+	case CANBITRATE_125KBIT_50MHZ:
+		/* ** 125kbit/s @ 50MHz SYSCLK ** */
+		//prescaler = 25, num_TQ = 16, Seg1 = 13, Seg2 = 2, Sample point at 87.5, register CAN_BTR = 0x001c0018
+		hcan1.Init.Prescaler = 25;
+		hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+		hcan1.Init.TimeSeg1 = CAN_BS1_13TQ;
+		hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
+		break;
+	default:
+		Error_Handler();
+	}
+	if(HAL_CAN_Init(&hcan1) != HAL_OK) {
+		Error_Handler();
+	}
+}
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-
 	if(huart->Instance == USART2) {
-		uint16_t TxXferCount = huart->TxXferCount;
-		uint16_t TxXferSize = huart->TxXferSize;
-
-		if(TxXferSize == 0) {
-			//printf("HAL_UART_TxCpltCallback count = %d  size = %d \n", count, size);
-			HAL_UART_Transmit_IT(huart, (uint8_t *)(tx), toTransfer);
-
-		} else if((TxXferSize > 0) && (TxXferCount < TxXferSize)) {
-
-			for(int i = 0; i < (TxXferSize - TxXferCount); i++) {
-				tx1[wasTransferred++] = tx[i];
-			}
-
-			if(TxXferCount > 0) {
-				HAL_UART_Transmit_IT(huart, (uint8_t *)(tx + TxXferSize - TxXferCount), TxXferCount);
-			} else {
-				txCmpl = 1;
-			}
-
-			//printf("USART2 HAL_UART_TxCpltCallback TxXferCount = %d  TxXferSize = %d \n", count, size);
-		}
+		printf("HAL_UART_TxCpltCallback USART2\r\n");
 	}
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-
 	if(huart->Instance == USART2) {
-		uint16_t RxXferCount = huart->RxXferCount;
-		uint16_t RxXferSize = huart->RxXferSize;
-
-		//printf("USART2 HAL_UART_RxCpltCallback count = %d size = %d \n", count, size);
-
-		if(RxXferSize == 0) {
-			HAL_UART_Receive_IT(huart, (uint8_t *)(rx), readLen);
-
-		} else if((RxXferSize > 0) && (RxXferCount < RxXferSize)) {
-
-			for(int i = 0; i < (RxXferSize - RxXferCount); i++) {
-				if(rxPos2 == sizeof(rx1)) {
-					rxPos2 = 0;
-				}
-				rx1[rxPos2++] = rx[i];
-			}
-
-			if(RxXferCount > 0) {
-				HAL_UART_Receive_IT(huart, (uint8_t *)(rx + RxXferSize - RxXferCount), RxXferCount);
-			} else {
-				rxCmpl = 1;
-				HAL_UART_Receive_IT(huart, (uint8_t *)(rx), readLen);
-			}
-		}
+		printf("HAL_UART_RxCpltCallback USART2\r\n");
 	}
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-
 	if(huart->Instance == USART2) {
-		uint16_t TxXferCount = huart->TxXferCount;
-		uint16_t TxXferSize = huart->TxXferSize;
-		printf("> HAL_UART_ErrorCallback USART2\n");
-		printf("> TxXferCount = %d TxXferSize = %d\n", TxXferCount, TxXferSize);
+		printf("HAL_UART_ErrorCallback USART2\r\n");
 	}
 }
 
 void HAL_UART_AbortReceiveCpltCallback(UART_HandleTypeDef *huart) {
-
-	printf("HAL_UART_AbortReceiveCpltCallback \n");
+	if(huart->Instance == USART2) {
+		printf("HAL_UART_AbortReceiveCpltCallback USART2\r\n");
+	}
 }
 
 void HAL_UART_AbortTransmitCpltCallback(UART_HandleTypeDef *huart) {
-
-	printf("HAL_UART_AbortTransmitCpltCallback \n");
-}
-void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {
-
-	printf("HAL_UART_AbortCpltCallback \n");
-}
-
-const char * stateUART(HAL_UART_StateTypeDef State) {
-
-	switch(State) {
-		case HAL_UART_STATE_RESET:
-			return "HAL_UART_STATE_RESET";
-		case HAL_UART_STATE_READY:
-			return "HAL_UART_STATE_READY";
-		case HAL_UART_STATE_BUSY:
-			return "HAL_UART_STATE_BUSY";
-		case HAL_UART_STATE_BUSY_TX:
-			return "HAL_UART_STATE_BUSY_TX";
-		case HAL_UART_STATE_BUSY_RX:
-			return "HAL_UART_STATE_BUSY_RX";
-		case HAL_UART_STATE_BUSY_TX_RX:
-			return "HAL_UART_STATE_BUSY_TX_RX";
-		case HAL_UART_STATE_TIMEOUT:
-			return "HAL_UART_STATE_TIMEOUT";
-		case HAL_UART_STATE_ERROR:
-			return "HAL_UART_STATE_ERROR";
-		default:
-			return "????";
+	if(huart->Instance == USART2) {
+		printf("HAL_UART_AbortTransmitCpltCallback USART2\r\n");
 	}
-	return "???";
 }
 
-/* USER CODE END 4 */
-
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
+void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {
+	if(huart->Instance == USART2) {
+		printf("HAL_UART_AbortCpltCallback USART2\r\n");
+	}
 }
 
-#ifdef  USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
-}
-#endif /* USE_FULL_ASSERT */
+void CAN_Filter_Config(void) {
+	CAN_FilterTypeDef can1_filter_init;
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+	can1_filter_init.FilterActivation = ENABLE;
+	can1_filter_init.FilterBank = 0;
+	can1_filter_init.FilterFIFOAssignment = CAN_RX_FIFO0;
+	can1_filter_init.FilterIdHigh = 0x0000;
+	can1_filter_init.FilterIdLow = 0x0000;
+	can1_filter_init.FilterMaskIdHigh = 0x0000;
+	can1_filter_init.FilterMaskIdLow = 0x0000;
+	can1_filter_init.FilterMode = CAN_FILTERMODE_IDMASK;
+	can1_filter_init.FilterScale = CAN_FILTERSCALE_32BIT;
+	if(HAL_CAN_ConfigFilter(&hcan1, &can1_filter_init) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+void CAN1_Tx(void) {
+	CAN_TxHeaderTypeDef TxHeader;
+	uint32_t TxMailbox;
+	uint8_t message[5] = {'H','E','L','L','O'};
+
+	TxHeader.DLC = 5; //Data Length Code (in Bytes)
+	TxHeader.StdId = 0x65D;	//Standard ID
+	TxHeader.IDE = CAN_ID_STD; //Standard or Extended ID type
+	TxHeader.RTR = CAN_RTR_DATA; //Remote Transmission Request
+	if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, message, &TxMailbox) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) {
+	if(hcan->Instance == CAN1) {
+		char msg[50];
+		printf("HAL_CAN_TxMailbox0CompleteCallback CAN1\r\n");
+		sprintf(msg,"Message Transmitted:M0\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	}
+}
+
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) {
+	if(hcan->Instance == CAN1) {
+		char msg[50];
+		printf("HAL_CAN_TxMailbox1CompleteCallback CAN1\r\n");
+		sprintf(msg,"Message Transmitted:M1\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	}
+}
+
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) {
+	if(hcan->Instance == CAN1) {
+		char msg[50];
+		printf("HAL_CAN_TxMailbox2CompleteCallback CAN1\r\n");
+		sprintf(msg,"Message Transmitted:M2\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	}
+}
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
+	if(hcan->Instance == CAN1) {
+		CAN_RxHeaderTypeDef RxHeader;
+		uint8_t rcvd_msg[5];
+		char msg[50];
+		printf("HAL_CAN_RxFifo0MsgPendingCallback CAN1\r\n");
+
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rcvd_msg) != HAL_OK) {
+			Error_Handler();
+		}
+
+		sprintf(msg, "Message Received : %s\r\n", rcvd_msg);
+
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	}
+}
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
+	if(hcan->Instance == CAN1) {
+		char msg[50];
+		printf("HAL_CAN_ErrorCallback CAN1\r\n");
+		sprintf(msg,"CAN Error Detected\r\n");
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+
+	if(htim->Instance == TIM6) {
+		CAN_TxHeaderTypeDef TxHeader;
+		uint32_t TxMailbox;
+		uint8_t message; //no meaning for data frame
+		printf("HAL_TIM_PeriodElapsedCallback TIM6\r\n");
+
+		if(request_count == 4) {
+			//N1 sending Remote frame to N2
+			TxHeader.DLC = 2; //N1 demanding a reply of 2 bytes
+			TxHeader.StdId = 0x651;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.RTR = CAN_RTR_REMOTE;
+
+			if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, &message, &TxMailbox) != HAL_OK) {
+				Error_Handler();
+			}
+			request_count = 0;
+		} else {
+			CAN1_Tx();
+			request_count++;
+		}
+		message = ++led_num;
+
+		if(led_num == 4) {
+			led_num = 0;
+		}
+	}
+}
+
+void LED_Manage_Output(uint8_t led_no) {
+
+	switch(led_no) {
+	case 1:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+		break;
+	case 2:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+		break;
+	case 3:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
+		break;
+	case 4:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+		break;
+	default:
+		break;
+	}
+}
+
+void Send_Response(uint32_t StdId) {
+
+	CAN_TxHeaderTypeDef TxHeader;
+	uint32_t TxMailbox;
+	uint8_t response[2] = {0xAB, 0xCD};
+
+	TxHeader.DLC = 2;
+	TxHeader.StdId = StdId;
+	TxHeader.IDE = CAN_ID_STD;
+	TxHeader.RTR = CAN_RTR_DATA;
+
+	if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, response, &TxMailbox) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+void Error_Handler(void) {
+	while(1);
+}
+
