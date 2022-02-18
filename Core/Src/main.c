@@ -13,7 +13,6 @@ UART_HandleTypeDef huart3;
 TIM_HandleTypeDef htim6;
 CAN_RxHeaderTypeDef RxHeader;
 
-uint8_t request_count = 0;
 uint8_t led_num = 0;
 
 int main(void) {
@@ -30,16 +29,7 @@ int main(void) {
 	CAN_Init(CANBITRATE_500KBIT_50MHZ);
 	CAN_Filter_Config();
 
-	//Activate Interrupts by setting CAN_IER bits
-	if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
-		Error_Handler();
-	}
-
-	//Start CAN
-	if(HAL_CAN_Start(&hcan1) != HAL_OK) {
-		Error_Handler();
-	}
-
+	CAN_Begin();
 
 	//UART_Test_API();
 	//CAN_Test_API();
@@ -92,6 +82,7 @@ void CAN_Test_API(void) {
 	uint16_t addr = 0x00;
 	//uint16_t addr[100];
 	uint16_t data[100];
+	uint8_t nodeID = 0x01;
 	*/
 
 	/*** Uncomment to test specific TinyBMS API -- Hangs in while() unless success is returned ****/
@@ -114,12 +105,12 @@ void CAN_Test_API(void) {
 	//while(TinyBMS_CAN_ReadVersion(&hcan1) != CMD_SUCCESS) {}
 	//while(TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(&hcan1) != CMD_SUCCESS) {}
 	//while(TinyBMS_CAN_ReadNodeID(&hcan1) != CMD_SUCCESS) {}
-	//while(TinyBMS_CAN_WriteNodeID(&hcan1) != CMD_SUCCESS) {}
+	//while(TinyBMS_CAN_WriteNodeID(&hcan1, nodeID) != CMD_SUCCESS) {}
 }
 
 void SystemClock_Config_HSE(uint8_t clock_freq) {
-	RCC_OscInitTypeDef osc_init;
-	RCC_ClkInitTypeDef clk_init;
+	RCC_OscInitTypeDef osc_init = {0};
+	RCC_ClkInitTypeDef clk_init = {0};
 	uint8_t flash_latency = 0;
 
 	//Using HSE to derive PLL
@@ -195,7 +186,7 @@ void SystemClock_Config_HSE(uint8_t clock_freq) {
 }
 
 void GPIO_Init(void) {
-	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
 	/* GPIO Ports Clock Enable */
 	__HAL_RCC_GPIOA_CLK_ENABLE();
@@ -266,7 +257,17 @@ void TIM_Init(void) {
 }
 
 void CAN_Init(uint8_t can_bitrate) {
-	//CAN1
+	/*	 		bxCAN (Basic Extended Controller Area Network) p.1295 of RM0385
+	 *  . STM32F746xx has CAN1 and CAN2 peripherals
+	 *    - CAN1 has direct access to 512B SRAM while CAN2 does not
+	 *  . Supports "Time Triggered Communication" for safety-critical applications
+	 *  . Supports CAN 2.0A (standard 11-bit ID) and 2.0B (extended 29-bit ID)
+	 *  	. TinyBMS supports CAN2.0A (11-bit ID)
+	 *  	. TinyBMS CAN bitrate of 500kbit/s (cannot be changed by user)
+	 *  . 3 Tx Mailboxes, 2 Rx FIFOs
+	 *  . 28 Filter banks shared between CAN1 and CAN2 for dual CAN
+	 *  . Max Bitrate of bxCAN is 1Mbit/s
+	 * 	* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	hcan1.Instance = CAN1;
 	hcan1.Init.Mode = CAN_MODE_NORMAL;
 	hcan1.Init.AutoBusOff = ENABLE;
@@ -278,14 +279,17 @@ void CAN_Init(uint8_t can_bitrate) {
 
 	/* Settings related to CAN bit timings (http://www.bittiming.can-wiki.info/) */
 	switch(can_bitrate) {
+	/*
 	case CANBITRATE_1MBIT_50MHZ:
-		/* ** 1Mbit/s @ 50MHz SYSCLK ** */
+		* ** 1Mbit/s (max bitrate) @ 50MHz SYSCLK ** *
 		//prescaler = 5, num_TQ = 10, Seg1 = 8, Seg2 = 1, Sample point at 90.0, register CAN_BTR = 0x00070004
 		hcan1.Init.Prescaler = 5;
 		hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
 		hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
 		hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
 		break;
+	*/
+	/********* TinyBMS only supports 500kbit/s CAN speed *********/
 	case CANBITRATE_500KBIT_50MHZ:
 		/* ** 500kbit/s @ 50MHz SYSCLK ** */
 		//prescaler = 5, num_TQ = 10, Seg1 = 8, Seg2 = 1, Sample point at 90.0, register CAN_BTR = 0x00070009
@@ -294,27 +298,141 @@ void CAN_Init(uint8_t can_bitrate) {
 		hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
 		hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
 		break;
+	/*
 	case CANBITRATE_250KBIT_50MHZ:
-		/* ** 250kbit/s @ 50MHz SYSCLK ** */
+		* ** 250kbit/s @ 50MHz SYSCLK ** *
 		//prescaler = 5, num_TQ = 10, Seg1 = 8, Seg2 = 1, Sample point at 90.0, register CAN_BTR = 0x00070013
 		hcan1.Init.Prescaler = 20;
 		hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
 		hcan1.Init.TimeSeg1 = CAN_BS1_8TQ;
 		hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
 		break;
+	*/
+	/*
 	case CANBITRATE_125KBIT_50MHZ:
-		/* ** 125kbit/s @ 50MHz SYSCLK ** */
+		* ** 125kbit/s @ 50MHz SYSCLK ** *
 		//prescaler = 25, num_TQ = 16, Seg1 = 13, Seg2 = 2, Sample point at 87.5, register CAN_BTR = 0x001c0018
 		hcan1.Init.Prescaler = 25;
 		hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
 		hcan1.Init.TimeSeg1 = CAN_BS1_13TQ;
 		hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
 		break;
+	*/
 	default:
 		Error_Handler();
 	}
 	if(HAL_CAN_Init(&hcan1) != HAL_OK) {
 		Error_Handler();
+	}
+}
+
+void CAN_Filter_Config(void) {
+	/*
+	 * 	TinyBMS Default Node ID: 0x01
+	 * 	CAN2.0A (11-bit CAN Identifier only)
+	 *  Request   ID: 01000(Node ID Default=0x01..0x3F) = 01000 000001 = 01 0000 0001 = 0x101
+	 *  Response  ID: 01001(Node ID Default=0x01..0x3F) = 01001 000001 = 01 0100 0001 = 0x141
+	 *
+	 *
+	 *	Filter Bank 0:	FB0_R1 (32-bit)    ID Reg / ID Reg 1
+	 *  				FB0_R2 (32-bit)  Mask Reg / ID Reg 2
+	 *
+	 *  Note: Mask Mode is useful for rules pertaining to matching specific bits of an ID.
+	 *  Note: List/ID Mode is useful for matching one or two exact ID's
+	 *
+	 * 														Mask Mode:
+	 * 			  31 30 29 28 27 26 25 24 | 23 22 21 | 20 19 18 17 16 | 15 14 13 12 11 10 9 8 | 7 6 5 4 3 | 2 | 1 | 0
+	 * 	  ID Reg  x  x  x  x  x  x  x  x	x  x  x    x  x  x  x  x    x  x  x  x  x  x  x x   x x x x x   x   x   x
+	 * 	Mask Reg  x  x  x  x  x  x  x  x    x  x  x    x  x  x  x  x    x  x  x  x  x  x  x x   x x x x x   x   x   x
+	 * 			  |------STID[10:3]-------|-STID[2:0]|---EXID[17:13]--|-------EXID[12:5]------|-EXID[4:0]-|IDE|RTD|-0-|
+	 * 			  <-------------------FilterIDHigh-------------------> <-----------------FilterIDLow------------------>
+	 * 			  <-----------------FilterMaskIDHigh-----------------> <---------------FilterMaskIDLow---------------->
+	 *			  <----x----> <----x---->	<-----x-----> <----x---->   <----x----> <----x--->  <--x--> <------x------>
+	 *    		  <----x----> <----x---->	<-----x-----> <----x---->   <----x----> <----x--->  <--x--> <------x------>
+	 *
+	 *
+	 *													Identifier List Mode:
+	 * 			  31 30 29 28 27 26 25 24 | 23 22 21 | 20 19 18 17 16 | 15 14 13 12 11 10 9 8 | 7 6 5 4 3 | 2 | 1 | 0
+	 * 	ID Reg 1  0  1  0  0  0  0  0  0	0  0  1    0  0  0  0  0    0  0  0  0  0  0  0 0   0 0 0 0 0   0   0   0
+	 * 	ID Reg 2  0  1  0  0  1  0  0  0    0  0  1    0  0  0  0  0    0  0  0  0  0  0  0 0   0 0 0 0 0   0   0   0
+	 * 			  |------STID[10:3]-------|-STID[2:0]|---EXID[17:13]--|-------EXID[12:5]------|-EXID[4:0]-|IDE|RTD|-0-|
+	 * 			  <-------------------FilterIDHigh-------------------> <-----------------FilterIDLow------------------>
+	 * 			  <-----------------FilterMaskIDHigh-----------------> <---------------FilterMaskIDLow---------------->
+	 *			  <----4----> <----0---->	<-----2-----> <----0---->   <----0----> <----0--->  <--0--> <------0------>
+	 *    		  <----4----> <----8---->	<-----2-----> <----0---->   <----0----> <----0--->  <--0--> <------0------>
+	 *
+	 * Note: Mask Mode can also be used to check:
+	 * RTR = 0 (Data Frame)				IDE = 0 (11-bit STID)
+	 * RTR = 1 (Remote Frame)			IDE = 1 (29-bit EXID)
+	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+	CAN_FilterTypeDef can1_filter_init = {0};
+
+	//TinyBMS Default Node ID: 0x01 (hard-coded)
+	//ID List Mode: Allows TinyBMS Request/Response messages from bus
+	can1_filter_init.FilterActivation = ENABLE;
+	can1_filter_init.FilterBank = 0;
+	can1_filter_init.FilterFIFOAssignment = CAN_RX_FIFO0;
+	can1_filter_init.FilterIdHigh = 0x4020; 	//IDLIST "Request to TinyBMS"
+	can1_filter_init.FilterIdLow = 0x0000;
+	can1_filter_init.FilterMaskIdHigh = 0x4820; //IDLIST "Response from TinyBMS"
+	can1_filter_init.FilterMaskIdLow = 0x0000;
+	can1_filter_init.FilterMode = CAN_FILTERMODE_IDLIST; //ID List Mode
+	can1_filter_init.FilterScale = CAN_FILTERSCALE_32BIT;
+	if(HAL_CAN_ConfigFilter(&hcan1, &can1_filter_init) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+void CAN_Begin(void) {
+	//Activate Notifications (Interrupts) by setting CAN_IER bits
+	if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+		Error_Handler();
+	}
+
+	//Start CAN
+	if(HAL_CAN_Start(&hcan1) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+void CAN1_Tx(uint8_t* message) {
+	CAN_TxHeaderTypeDef TxHeader;
+	uint32_t TxMailbox;
+
+	TxHeader.DLC = 8;				//Data Length Code (in Bytes)
+	TxHeader.StdId = 0x101;			//Standard ID
+	TxHeader.IDE = CAN_ID_STD; 		//Standard or Extended ID type
+	TxHeader.RTR = CAN_RTR_DATA;	//Remote Transmission Request
+	if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, message, &TxMailbox) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+void LED_Manage_Output(uint8_t led_no) {
+
+	switch(led_no) {
+	case 1:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+		break;
+	case 2:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+		break;
+	case 3:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
+		break;
+	case 4:
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
+		break;
+	default:
+		break;
 	}
 }
 
@@ -354,37 +472,6 @@ void HAL_UART_AbortCpltCallback(UART_HandleTypeDef *huart) {
 	}
 }
 
-void CAN_Filter_Config(void) {
-	CAN_FilterTypeDef can1_filter_init;
-
-	can1_filter_init.FilterActivation = ENABLE;
-	can1_filter_init.FilterBank = 0;
-	can1_filter_init.FilterFIFOAssignment = CAN_RX_FIFO0;
-	can1_filter_init.FilterIdHigh = 0x0000;
-	can1_filter_init.FilterIdLow = 0x0000;
-	can1_filter_init.FilterMaskIdHigh = 0x0000;
-	can1_filter_init.FilterMaskIdLow = 0x0000;
-	can1_filter_init.FilterMode = CAN_FILTERMODE_IDMASK;
-	can1_filter_init.FilterScale = CAN_FILTERSCALE_32BIT;
-	if(HAL_CAN_ConfigFilter(&hcan1, &can1_filter_init) != HAL_OK) {
-		Error_Handler();
-	}
-}
-
-void CAN1_Tx(void) {
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t TxMailbox;
-	uint8_t message[5] = {'H','E','L','L','O'};
-
-	TxHeader.DLC = 5; //Data Length Code (in Bytes)
-	TxHeader.StdId = 0x65D;	//Standard ID
-	TxHeader.IDE = CAN_ID_STD; //Standard or Extended ID type
-	TxHeader.RTR = CAN_RTR_DATA; //Remote Transmission Request
-	if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, message, &TxMailbox) != HAL_OK) {
-		Error_Handler();
-	}
-}
-
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) {
 	if(hcan->Instance == CAN1) {
 		char msg[50];
@@ -414,18 +501,12 @@ void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) {
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 	if(hcan->Instance == CAN1) {
-		CAN_RxHeaderTypeDef RxHeader;
-		uint8_t rcvd_msg[5];
-		char msg[50];
-		printf("HAL_CAN_RxFifo0MsgPendingCallback CAN1\r\n");
-
-		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rcvd_msg) != HAL_OK) {
+		//Deactivate Notifications before getting Rx Message
+		if(HAL_CAN_DeactivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
 			Error_Handler();
 		}
 
-		sprintf(msg, "Message Received : %s\r\n", rcvd_msg);
-
-		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+		printf("HAL_CAN_RxFifo0MsgPendingCallback CAN1\r\n");
 	}
 }
 
@@ -433,83 +514,8 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 	if(hcan->Instance == CAN1) {
 		char msg[50];
 		printf("HAL_CAN_ErrorCallback CAN1\r\n");
-		sprintf(msg,"CAN Error Detected\r\n");
+		sprintf(msg, "CAN Error Detected\r\n");
 		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-	}
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-
-	if(htim->Instance == TIM6) {
-		CAN_TxHeaderTypeDef TxHeader;
-		uint32_t TxMailbox;
-		uint8_t message; //no meaning for data frame
-		printf("HAL_TIM_PeriodElapsedCallback TIM6\r\n");
-
-		if(request_count == 4) {
-			//N1 sending Remote frame to N2
-			TxHeader.DLC = 2; //N1 demanding a reply of 2 bytes
-			TxHeader.StdId = 0x651;
-			TxHeader.IDE = CAN_ID_STD;
-			TxHeader.RTR = CAN_RTR_REMOTE;
-
-			if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, &message, &TxMailbox) != HAL_OK) {
-				Error_Handler();
-			}
-			request_count = 0;
-		} else {
-			CAN1_Tx();
-			request_count++;
-		}
-		message = ++led_num;
-
-		if(led_num == 4) {
-			led_num = 0;
-		}
-	}
-}
-
-void LED_Manage_Output(uint8_t led_no) {
-
-	switch(led_no) {
-	case 1:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-		break;
-	case 2:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-		break;
-	case 3:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
-		break;
-	case 4:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-		break;
-	default:
-		break;
-	}
-}
-
-void Send_Response(uint32_t StdId) {
-
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t TxMailbox;
-	uint8_t response[2] = {0xAB, 0xCD};
-
-	TxHeader.DLC = 2;
-	TxHeader.StdId = StdId;
-	TxHeader.IDE = CAN_ID_STD;
-	TxHeader.RTR = CAN_RTR_DATA;
-
-	if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, response, &TxMailbox) != HAL_OK) {
-		Error_Handler();
 	}
 }
 
