@@ -24,7 +24,8 @@ void UART_Init(void);
 void TIM_Init(void);
 void CAN_Init(uint8_t can_bitrate);
 void CAN_Filter_Config(void);
-void CAN1_Tx(void);
+void CAN_Begin(void);
+void CAN1_Tx(uint8_t* message);
 void LED_Manage_Output(uint8_t led_num);
 void Send_Response(uint32_t StdId);
 void Error_Handler(void);
@@ -45,6 +46,7 @@ void Error_Handler(void);
 #define CANBITRATE_500KBIT_50MHZ 		1
 #define CANBITRATE_250KBIT_50MHZ 		2
 #define CANBITRATE_125KBIT_50MHZ 		3
+
 
 /************  GPIO Macros ************/
 /* HSE Bypass */

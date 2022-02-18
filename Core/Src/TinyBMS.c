@@ -38,28 +38,27 @@
  *
  * CAN API Testing:
  *   #    	Testing   Complete    	Function
- *  2.1.1 		[] 		[]			TinyBMS_CAN_ResetClearEventsStatistics
- *  2.1.2 		[] 		[]			TinyBMS_CAN_ReadRegBlock
- *  2.1.3 		[] 		[]			TinyBMS_CAN_WriteRegBlock
- *  2.1.4 		[] 		[]			TinyBMS_CAN_ReadNewestEvents
- *  2.1.5 		[] 		[]			TinyBMS_CAN_ReadAllEvents
- *  2.1.6 		[] 		[]			TinyBMS_CAN_ReadBatteryPackVoltage
- *  2.1.7 		[] 		[]			TinyBMS_CAN_ReadBatteryPackCurrent
- *  2.1.8 		[] 		[]			TinyBMS_CAN_ReadBatteryPackMaxCellVoltage
- *  2.1.9 		[] 		[]			TinyBMS_CAN_ReadBatteryPackMinCellVoltage
- *  2.1.10 		[] 		[]			TinyBMS_CAN_ReadOnlineStatus
- *  2.1.11 		[] 		[]			TinyBMS_CAN_ReadLifetimeCounter
- *  2.1.12 		[] 		[]			TinyBMS_CAN_ReadEstimatedSOCValue
- *  2.1.13 		[] 		[]			TinyBMS_CAN_ReadDeviceTemperatures
- *  2.1.14 		[] 		[]			TinyBMS_CAN_ReadBatteryPackCellVoltages
- *  2.1.15 		[] 		[]			TinyBMS_CAN_ReadSettingsValues
- *  2.1.16 		[] 		[]			TinyBMS_CAN_ReadVersion
- *  2.1.17 		[] 		[]			TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft
- *  2.1.18 		[] 		[]			TinyBMS_CAN_ReadNodeID
- *  2.1.19 		[] 		[]			TinyBMS_CAN_WriteNodeID
+ *  2.1.1 		[x] 		[]		TinyBMS_CAN_ResetClearEventsStatistics
+ *  2.1.2 		[x] 		[]		TinyBMS_CAN_ReadRegBlock
+ *  2.1.3 		[x] 		[]		TinyBMS_CAN_WriteRegBlock
+ *  2.1.4 		[x] 		[]		TinyBMS_CAN_ReadNewestEvents
+ *  2.1.5 		[x] 		[]		TinyBMS_CAN_ReadAllEvents
+ *  2.1.6 		[x] 		[]		TinyBMS_CAN_ReadBatteryPackVoltage
+ *  2.1.7 		[x] 		[]		TinyBMS_CAN_ReadBatteryPackCurrent
+ *  2.1.8 		[x] 		[]		TinyBMS_CAN_ReadBatteryPackMaxCellVoltage
+ *  2.1.9 		[x] 		[]		TinyBMS_CAN_ReadBatteryPackMinCellVoltage
+ *  2.1.10 		[x] 		[]		TinyBMS_CAN_ReadOnlineStatus
+ *  2.1.11 		[x] 		[]		TinyBMS_CAN_ReadLifetimeCounter
+ *  2.1.12 		[x] 		[]		TinyBMS_CAN_ReadEstimatedSOCValue
+ *  2.1.13 		[x] 		[]		TinyBMS_CAN_ReadDeviceTemperatures
+ *  2.1.14 		[x] 		[]		TinyBMS_CAN_ReadBatteryPackCellVoltages
+ *  2.1.15 		[x] 		[]		TinyBMS_CAN_ReadSettingsValues
+ *  2.1.16 		[x] 		[]		TinyBMS_CAN_ReadVersion
+ *  2.1.17 		[x] 		[]		TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft
+ *  2.1.18 		[x] 		[]		TinyBMS_CAN_ReadNodeID
+ *  2.1.19 		[x] 		[]		TinyBMS_CAN_WriteNodeID
  *
  */
-
 
 /**************** Header Files ****************/
 #include "TinyBMS.h"
@@ -68,8 +67,9 @@
 /* CRC Calculation Function Prototype (only used with UART) */
 static uint16_t CRC16(const uint8_t* data, uint16_t length);
 
-/***************** Functions ******************/
-
+/***************** External Handles ******************/
+extern UART_HandleTypeDef huart2;
+extern CAN_HandleTypeDef hcan1;
 
 /* ********************************
  *  TinyBMS UART Communication API
@@ -103,7 +103,7 @@ static uint16_t CRC16(const uint8_t* data, uint16_t length);
  * @note				-  0x00 - CMD ERROR , 0x01 - CRC ERROR
  *
  */
-uint8_t TinyBMS_UART_ACK(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ACK(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ACK\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -112,24 +112,24 @@ uint8_t TinyBMS_UART_ACK(UART_HandleTypeDef *huart2) {
 	uint16_t CRC_calc = 0, CRC_reply = 0;
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check ACK/NACK
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check ACK/NACK
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[NACK]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [NACK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from NACK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from NACK reply
 
 			cmd = rx_buffer[2];
 			printf("cmd: 0x%02X\n", cmd);
 
 			uint8_t error = rx_buffer[3];
 
-			if(error == 0x00) {
+			if(error == CMD_ERROR) {
 				printf("CMD ERROR\n");
-			} else if(error == 0x01) {
+			} else if(error == CRC_ERROR) {
 				printf("CRC ERROR\n");
 			} else {
 				printf("Error: Byte 4 should be 0x00 or 0x01 but was 0x%02X\n", error);
@@ -148,10 +148,10 @@ uint8_t TinyBMS_UART_ACK(UART_HandleTypeDef *huart2) {
 			}
 
 		//[ACK]
-		} else if(rx_buffer[1] == 0x01) {
+		} else if(rx_buffer[1] == UART_TBMS_ACK) {
 			printf("Response from BMS [ACK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 3); //read bytes 3-5 from ACK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 3); //read bytes 3-5 from ACK reply
 
 			cmd = rx_buffer[2];
 			printf("cmd: 0x%02X\n", cmd);
@@ -195,7 +195,7 @@ uint8_t TinyBMS_UART_ACK(UART_HandleTypeDef *huart2) {
  * @note				-  A memory block is a group of one or more contiguous bytes of memory allocated
  * 						   by malloc(size_t size).
  */
-uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16_t addr) {
+uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart, uint8_t rl, uint16_t addr) {
 	printf("TinyBMS_UART_ReadRegBlock\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -205,7 +205,7 @@ uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x07;
+	tx_buffer[1] = UART_TBMS_READ_REG_BLOCK;
 
 	tx_buffer[2] = rl;
 
@@ -226,18 +226,18 @@ uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16
 	tx_buffer[5] = CRC_LSB;
 	tx_buffer[6] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 7);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 7);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -254,10 +254,10 @@ uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x07) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_REG_BLOCK) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//Should be equal to (RL * 2) because 2 bytes per register
 			uint8_t PL = rx_buffer[2];
@@ -265,7 +265,6 @@ uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16
 			uint8_t bit7 = ((PL >> 7) & 1); //extract bit 7
 			uint8_t bits05 = (PL & 63); //extract bits 0-5
 
-			//Todo: Figure out the reasoning behind the differing PL byte configuration
 			//if bit7 == 1
 			if(bit7) {
 				printf("Current packet ID: 0x%02X\n", bits05);
@@ -274,7 +273,7 @@ uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16
 				printf("Payload size in bytes (last packet): 0x%02X\n", bits05);
 			}
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to 2*n+5 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to 2*n+5 from OK reply
 
 			uint16_t DATA[] = {0};
 			uint32_t numDATA = (PL / 2); //2 bytes per data
@@ -338,7 +337,7 @@ uint8_t TinyBMS_UART_ReadRegBlock(UART_HandleTypeDef *huart2, uint8_t rl, uint16
  * 						 	ADDRn:LSB  ADDRn:MSB   DATAn:LSB   DATAn:MSB   CRC:LSB     CRC:MSB
  * 						 	      [UINT16]			     [UINT16]
  */
-uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr[]) {
+uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart, uint8_t pl, uint16_t addr[]) {
 	printf("TinyBMS_UART_ReadRegIndividual\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -350,7 +349,7 @@ uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, u
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x09;
+	tx_buffer[1] = UART_TBMS_READ_INDIVIDUAL_REGS;
 
 	tx_buffer[2] = pl_request;
 	uint16_t numAddresses = (pl_request / 2); //2 bytes per address
@@ -377,18 +376,18 @@ uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, u
 	tx_buffer[(2*n)+4-1] = CRC_LSB;
 	tx_buffer[(2*n)+5-1] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, pl_request+5); //Bytes 1:2n+5 or pl+5
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, pl_request+5); //Bytes 1:2n+5 or pl+5
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -405,10 +404,10 @@ uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, u
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x09) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_INDIVIDUAL_REGS) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//equal to (RL * 2) because 2 bytes per register
 			uint8_t pl_response = rx_buffer[2];
@@ -416,7 +415,6 @@ uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, u
 			uint8_t bit7 = ((pl_response >> 7) & 1); //extract bit 7
 			uint8_t bits05 = (pl_response & 63); //extract bits 0-5
 
-			//Todo: Figure out the reasoning behind the differing PL byte configuration
 			//if bit7 == 1
 			if(bit7) {
 				printf("Current packet ID: 0x%02X\n", bits05);
@@ -425,7 +423,7 @@ uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, u
 				printf("Payload size in bytes (last packet): 0x%02X\n", bits05);
 			}
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], pl_response+2); //read from byte 4 to 4*n+5 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], pl_response+2); //read from byte 4 to 4*n+5 from OK reply
 
 			uint16_t ADDR[] = {0}, DATA[] = {0};
 			uint16_t numDATA = (pl_response / 4); //4 bytes per data
@@ -487,7 +485,7 @@ uint8_t TinyBMS_UART_ReadRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, u
  *
  * @note				-  A memory block is a group of one or more contiguous bytes of memory allocated by malloc(size_t size).
  */
-uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr, uint16_t data[]) {
+uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart, uint8_t pl, uint16_t addr, uint16_t data[]) {
 	printf("TinyBMS_UART_WriteRegBlock\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -497,14 +495,13 @@ uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint1
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x0B;
+	tx_buffer[1] = UART_TBMS_WRITE_REG_BLOCK;
 
 	tx_buffer[2] = pl;
 
 	uint8_t bit7 = ((pl >> 7) & 1); //extract bit 7
 	uint8_t bits05 = (pl & 63); //extract bits 0-5
 
-	//Todo: Figure out the reasoning behind the differing PL byte configuration
 	//if bit7 == 1
 	if(bit7) {
 		printf("Current packet ID: 0x%02X\n", bits05);
@@ -549,18 +546,18 @@ uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint1
 	tx_buffer[(2*n)+6-1] = CRC_LSB;
 	tx_buffer[(2*n)+7-1] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, pl+5);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, pl+5);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -577,21 +574,25 @@ uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint1
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x01) {
+		} else if(rx_buffer[1] == ACK) {
 			printf("Response from BMS [ACK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 3); //read byte 3-5 from ACK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 3); //read byte 3-5 from ACK reply
 
-			CRC_reply = ((rx_buffer[5] << 8) | rx_buffer[4]);
-			CRC_calc = CRC16(rx_buffer, 3); //Calc CRC for bytes 1-3 of ACK response
+			if(rx_buffer[2] == UART_TBMS_WRITE_REG_BLOCK) {
+				CRC_reply = ((rx_buffer[5] << 8) | rx_buffer[4]);
+				CRC_calc = CRC16(rx_buffer, 3); //Calc CRC for bytes 1-3 of ACK response
 
-			if(CRC_calc == CRC_reply) {
-				printf("CRC pass\n");
-				printf("ACK!\n");
-				retval = CMD_SUCCESS;
+				if(CRC_calc == CRC_reply) {
+					printf("CRC pass\n");
+					printf("ACK!\n");
+					retval = CMD_SUCCESS;
 
+				} else {
+					printf("CRC fail in BMS OK\n");
+					retval = CMD_FAILURE;
+				}
 			} else {
-				printf("CRC fail in BMS OK\n");
 				retval = CMD_FAILURE;
 			}
 
@@ -629,7 +630,7 @@ uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart2, uint8_t pl, uint1
  * 						 	ADDRn:LSB  ADDRn:MSB   DATAn:LSB   DATAn:MSB   CRC:LSB     CRC:MSB
  * 						 	      [UINT16]			     [UINT16]
  */
-uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, uint16_t addr[], uint16_t data[]) {
+uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart, uint8_t pl, uint16_t addr[], uint16_t data[]) {
 	printf("TinyBMS_UART_WriteRegIndividual\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -639,14 +640,13 @@ uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, 
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x0D;
+	tx_buffer[1] = UART_TBMS_WRITE_INDIVIDUAL_REGS;
 
 	tx_buffer[2] = pl;
 
 	uint8_t bit7 = ((pl >> 7) & 1); //extract bit 7
 	uint8_t bits05 = (pl & 63); //extract bits 0-5
 
-	//Todo: Figure out the reasoning behind the differing PL byte configuration
 	//if bit7 == 1
 	if(bit7) {
 		printf("Current packet ID: 0x%02X\n", bits05);
@@ -691,18 +691,18 @@ uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, 
 	tx_buffer[(4*n)+4-1] = CRC_LSB;
 	tx_buffer[(4*n)+5-1] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, pl+5);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, pl+5);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -719,21 +719,25 @@ uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, 
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x01) {
+		} else if(rx_buffer[1] == ACK) {
 			printf("Response from BMS [ACK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 3); //read bytes 3-5 from ACK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 3); //read bytes 3-5 from ACK reply
 
-			CRC_reply = ((rx_buffer[4] << 8) | rx_buffer[3]);
-			CRC_calc = CRC16(rx_buffer, 3); //Calc CRC for bytes (PL+3 or Payload Value plus Bytes 1,2,3)) of OK response
+			if(rx_buffer[2] == UART_TBMS_WRITE_INDIVIDUAL_REGS) {
+				CRC_reply = ((rx_buffer[4] << 8) | rx_buffer[3]);
+				CRC_calc = CRC16(rx_buffer, 3); //Calc CRC for bytes (PL+3 or Payload Value plus Bytes 1,2,3)) of OK response
 
-			if(CRC_calc == CRC_reply) {
-				printf("CRC pass\n");
-				printf("ACK!\n");
-				retval = CMD_SUCCESS;
+				if(CRC_calc == CRC_reply) {
+					printf("CRC pass\n");
+					printf("ACK!\n");
+					retval = CMD_SUCCESS;
 
+				} else {
+					printf("CRC fail in BMS OK\n");
+					retval = CMD_FAILURE;
+				}
 			} else {
-				printf("CRC fail in BMS OK\n");
 				retval = CMD_FAILURE;
 			}
 
@@ -769,7 +773,7 @@ uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart2, uint8_t pl, 
  * 						 	  DATAn:MSB   DATAn:LSB   CRC:LSB     CRC:MSB
  * 						 	        [UINT16]
  */
-uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl) {
+uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart, uint16_t addr, uint8_t rl) {
 	printf("TinyBMS_UART_ReadRegBlockMODBUS\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -779,7 +783,7 @@ uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t add
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x03;
+	tx_buffer[1] = UART_TBMS_READ_REG_BLOCK_MODBUS;
 
 	//First register's block address
 	ADDR_MSB = ((addr >> 8) & 0xFF);
@@ -810,18 +814,18 @@ uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t add
 	tx_buffer[6] = CRC_LSB;
 	tx_buffer[7] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 8);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 8);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -838,14 +842,14 @@ uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t add
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x03) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_REG_BLOCK_MODBUS) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			uint8_t PL = rx_buffer[2];
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to 2*n+5 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to 2*n+5 from OK reply
 
 			uint16_t DATA[] = {0};
 			uint32_t numDATA = (PL / 2); //2 bytes per data
@@ -911,7 +915,7 @@ uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t add
  * 						 	  DATAn:MSB   DATAn:LSB   CRC:LSB     CRC:MSB
  * 						 	        [UINT16]
  */
-uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t data[]) {
+uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t data[]) {
 	printf("TinyBMS_UART_WriteRegBlockMODBUS\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -921,7 +925,7 @@ uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t ad
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x10;
+	tx_buffer[1] = UART_TBMS_WRITE_REG_BLOCK_MODBUS;
 
 	//MSB first
 	ADDR_MSB = ((addr >> 8) & 0xFF);
@@ -966,18 +970,18 @@ uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t ad
 	tx_buffer[(2*n)+8-1] = CRC_LSB;
 	tx_buffer[(2*n)+9-1] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, pl+9);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, pl+9);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -994,10 +998,10 @@ uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t ad
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x10) {
+		} else if(rx_buffer[1] == UART_TBMS_WRITE_REG_BLOCK_MODBUS) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
 
 			//MSB first
 			uint16_t addr_response = ((rx_buffer[2] << 8) | rx_buffer[3]);
@@ -1044,7 +1048,7 @@ uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart2, uint16_t ad
  * @note				-  Options: 0x01 - Clear Events , 0x02 - Clear Statistics , 0x05 - Reset BMS
  *
  */
-uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint8_t option) {
+uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart, uint8_t option) {
 	printf("TinyBMS_UART_ResetClearEventsStatistics\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1061,7 +1065,7 @@ uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x02;
+	tx_buffer[1] = UART_TBMS_RESET_CLEAR_EVENTS_STATS;
 	tx_buffer[2] = option; //check notes above
 
 	CRC_request = CRC16(tx_buffer, 3);
@@ -1076,18 +1080,18 @@ uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint
 	tx_buffer[3] = CRC_LSB;
 	tx_buffer[4] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 5);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 5);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check ACK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check ACK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1104,28 +1108,31 @@ uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint
 			}
 
 		//[ACK]
-		} else if(rx_buffer[1] == 0x01) {
+		} else if(rx_buffer[1] == ACK) {
 			printf("Response from BMS [ACK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 3); //read bytes 3-5 from ACK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 3); //read bytes 3-5 from ACK reply
+			if(rx_buffer[2] == UART_TBMS_RESET_CLEAR_EVENTS_STATS) {
+				CRC_reply = ((rx_buffer[4] << 8) | rx_buffer[3]);
+				CRC_calc = CRC16(rx_buffer, 3); //Calc CRC for bytes 1-3 of OK response
 
-			CRC_reply = ((rx_buffer[4] << 8) | rx_buffer[3]);
-			CRC_calc = CRC16(rx_buffer, 3); //Calc CRC for bytes 1-3 of OK response
+				if(CRC_calc == CRC_reply) {
+					printf("CRC pass\n");
 
-			if(CRC_calc == CRC_reply) {
-				printf("CRC pass\n");
+					if(option == 0x01)
+						printf("Option 0x%02X - Clear Events\n", option);
+					else if(option == 0x02)
+						printf("Option 0x%02X - Clear Statistics\n", option);
+					else if(option == 0x05)
+						printf("Option 0x%02X - Reset BMS\n", option);
 
-				if(option == 0x01)
-					printf("Option 0x%02X - Clear Events\n", option);
-				else if(option == 0x02)
-					printf("Option 0x%02X - Clear Statistics\n", option);
-				else if(option == 0x05)
-					printf("Option 0x%02X - Reset BMS\n", option);
+					retval = CMD_SUCCESS;
 
-				retval = CMD_SUCCESS;
-
+				} else {
+					printf("CRC fail in BMS ACK\n");
+					retval = CMD_FAILURE;
+				}
 			} else {
-				printf("CRC fail in BMS ACK\n");
 				retval = CMD_FAILURE;
 			}
 
@@ -1155,7 +1162,7 @@ uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart2, uint
  * @note				-  PL: Payload length in bytes [UINT8]. BTSP: BMS timestamp in seconds [UINT32].
  * 						   TSP: Event timestamp in seconds [UINT24]. EVENT: BMS Event ID [UINT8].
  */
-uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadNewestEvents\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1165,7 +1172,7 @@ uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x11;
+	tx_buffer[1] = UART_TBMS_READ_NEWEST_EVENTS;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1179,18 +1186,18 @@ uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1207,16 +1214,16 @@ uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x11) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_NEWEST_EVENTS) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//Total Events: (0x01-0x90) or 144 events
 			uint8_t PL = rx_buffer[2];
 			//Payload Length = PL = 4n+4 bytes
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to 4n+9 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to 4n+9 from OK reply
 
 			uint32_t BTSP = 0;
 			uint32_t TSP[] = {0}; 	//uint24_t stored in a uint32_t
@@ -1291,7 +1298,7 @@ uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart2) {
  * @note				-  PL: Payload length in bytes [UINT8]. BTSP: BMS timestamp in seconds [UINT32].
  * 						   TSP: Event timestamp in seconds [UINT24]. EVENT: BMS Event ID [UINT8].
  */
-uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadAllEvents\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1301,7 +1308,7 @@ uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x12;
+	tx_buffer[1] = UART_TBMS_READ_ALL_EVENTS;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1315,18 +1322,18 @@ uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1343,16 +1350,16 @@ uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x12) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_ALL_EVENTS) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//Total Events: (0x01-0x90) or 144 events
 			uint8_t PL = rx_buffer[2];
 			//Payload Length = PL = 4n+4 bytes
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to 4n+9 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to 4n+9 from OK reply
 
 			uint32_t BTSP = 0;
 			uint32_t TSP[] = {0}; 	//uint24_t stored in a uint32_t
@@ -1430,7 +1437,7 @@ uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart2) {
  * 						 	  DATA:LSB   DATA   DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	               [FLOAT]
  */
-uint8_t TinyBMS_UART_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadBatteryPackVoltage(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadBatteryPackVoltage\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1440,7 +1447,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x14;
+	tx_buffer[1] = UART_TBMS_READ_PACK_VOLTAGE;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1454,18 +1461,18 @@ uint8_t TinyBMS_UART_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1482,10 +1489,10 @@ uint8_t TinyBMS_UART_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x14) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_PACK_VOLTAGE) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
 
 			uint32_t data = ((rx_buffer[5] << 24) | (rx_buffer[4] << 16) | (rx_buffer[3] << 8) | (rx_buffer[2]));
 		    //printf("0x%08X\n", data);
@@ -1534,7 +1541,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackVoltage(UART_HandleTypeDef *huart2) {
  * 						 	  DATA:LSB   DATA   DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	               [FLOAT]
  */
-uint8_t TinyBMS_UART_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadBatteryPackCurrent(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadBatteryPackCurrent\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1544,7 +1551,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x15;
+	tx_buffer[1] = UART_TBMS_READ_PACK_CURRENT;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1558,18 +1565,18 @@ uint8_t TinyBMS_UART_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1586,10 +1593,10 @@ uint8_t TinyBMS_UART_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x15) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_PACK_CURRENT) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
 
 			uint32_t data = ((rx_buffer[5] << 24) | (rx_buffer[4] << 16) | (rx_buffer[3] << 8) | (rx_buffer[2]));
 		    //printf("0x%08X\n", data);
@@ -1638,7 +1645,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackCurrent(UART_HandleTypeDef *huart2) {
  * 						 	  DATA:LSB   	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        [UINT16]
  */
-uint8_t TinyBMS_UART_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadBatteryPackMaxCellVoltage\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1648,7 +1655,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x16;
+	tx_buffer[1] = UART_TBMS_READ_MAX_CELL_VOLTAGE;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1662,18 +1669,18 @@ uint8_t TinyBMS_UART_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1690,10 +1697,10 @@ uint8_t TinyBMS_UART_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x16) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_MAX_CELL_VOLTAGE) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from OK reply
 
 			uint16_t batteryPackMaxCellVoltage = ((rx_buffer[3] << 8) | (rx_buffer[2]));
 
@@ -1740,7 +1747,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackMaxCellVoltage(UART_HandleTypeDef *huart2) {
  * 						 	  DATA:LSB   	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        [UINT16]
  */
-uint8_t TinyBMS_UART_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadBatteryPackMinCellVoltage\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1750,7 +1757,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x17;
+	tx_buffer[1] = UART_TBMS_READ_MIN_CELL_VOLTAGE;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1764,18 +1771,18 @@ uint8_t TinyBMS_UART_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1792,10 +1799,10 @@ uint8_t TinyBMS_UART_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x17) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_MIN_CELL_VOLTAGE) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from OK reply
 
 			uint16_t batteryPackMinCellVoltage = ((rx_buffer[3] << 8) | (rx_buffer[2]));
 
@@ -1845,7 +1852,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackMinCellVoltage(UART_HandleTypeDef *huart2) {
  * 						   0x93 - Discharging [INFO], 0x94 - Regeneration [INFO]
  * 						   0x97 - Idle [INFO], 0x9B - Fault [ERROR]
  */
-uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadOnlineStatus\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1855,7 +1862,7 @@ uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x18;
+	tx_buffer[1] = UART_TBMS_READ_ONLINE_STATUS;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1869,18 +1876,18 @@ uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -1897,10 +1904,10 @@ uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x18) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_ONLINE_STATUS) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from OK reply
 
 			uint16_t onlineStatus = ((rx_buffer[3] << 8) | (rx_buffer[2]));
 
@@ -1910,31 +1917,30 @@ uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
 			if(CRC_calc == CRC_reply) {
 				printf("CRC pass\n");
 
-				//Todo: Need to test onlineStatus output, unsure why these values are stored in a 2 byte container (uint16_t)
-				//0x0091? MSB 0x09 0x01 LSB?
 				printf("************ TinyBMS Online Status: ************\n");
 				switch(onlineStatus) {
-					case 0x91:
+					case TBMS_STATUS_CHARGING:
 						printf("0x91 - Charging [INFO]\n");
 						break;
-					case 0x92:
+					case TBMS_STATUS_FULLYCHARGED:
 						printf("0x92 - Fully Charged [INFO]\n");
 						break;
-					case 0x93:
+					case TBMS_STATUS_DISCHARGING:
 						printf("0x93 - Discharging [INFO]\n");
 						break;
-					case 0x96:
+					case TBMS_STATUS_REGENERATION:
 						printf("0x96 - Regeneration [INFO]\n");
 						break;
-					case 0x97:
+					case TBMS_STATUS_IDLE:
 						printf("0x97 - Idle [INFO]\n");
 						break;
-					case 0x9B:
+					case TBMS_STATUS_FAULT:
 						printf("0x9B - Fault [ERROR]\n");
 						break;
 					default:
 						printf("Invalid onlineStatus\n");
-						break;
+						retval = CMD_FAILURE;
+						return retval;
 				}
 				retval = CMD_SUCCESS;
 
@@ -1972,7 +1978,7 @@ uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart2) {
  * 						 	  DATA:LSB   DATA	DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        	  [UINT32]
  */
-uint8_t TinyBMS_UART_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadLifetimeCounter(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadLifetimeCounter\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -1982,7 +1988,7 @@ uint8_t TinyBMS_UART_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x19;
+	tx_buffer[1] = UART_TBMS_READ_LIFETIME_COUNTER;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -1996,18 +2002,18 @@ uint8_t TinyBMS_UART_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2024,10 +2030,10 @@ uint8_t TinyBMS_UART_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x19) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_LIFETIME_COUNTER) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
 
 			uint32_t lifetimeCounter = ((rx_buffer[5] << 24) | (rx_buffer[4] << 16) | (rx_buffer[3] << 8) | (rx_buffer[2]));
 
@@ -2074,7 +2080,7 @@ uint8_t TinyBMS_UART_ReadLifetimeCounter(UART_HandleTypeDef *huart2) {
  * 						 	  DATA:LSB   DATA	DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        	  [UINT32]
  */
-uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadEstimatedSOCValue\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -2084,7 +2090,7 @@ uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x1A;
+	tx_buffer[1] = UART_TBMS_READ_EST_SOC;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -2098,18 +2104,18 @@ uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2126,10 +2132,10 @@ uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x1A) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_EST_SOC) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 6); //read bytes 3-8 from OK reply
 
 			uint32_t estSOC = ((rx_buffer[5] << 24) | (rx_buffer[4] << 16) | (rx_buffer[3] << 8) | (rx_buffer[2]));
 
@@ -2139,7 +2145,7 @@ uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
 			if(CRC_calc == CRC_reply) {
 				printf("CRC pass\n");
 
-				printf("Estimated State of Charge (SOC): %lu %% (0.000 001 %% resolution)\n", estSOC);
+				printf("Estimated State of Charge (SOC): %lu (0.000 001 %% resolution)\n", estSOC);
 				retval = CMD_SUCCESS;
 
 			} else {
@@ -2179,7 +2185,7 @@ uint8_t TinyBMS_UART_ReadEstimatedSOCValue(UART_HandleTypeDef *huart2) {
  * 						  	(Reg 42) DATA2 - External Temp Sensor #1 (value of -327689 if NC)
  * 						  	(Reg 43) DATA3 - External Temp Sensor #2 (value of -327689 if NC)
  */
-uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadDeviceTemperatures\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -2189,7 +2195,7 @@ uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x1B; //command
+	tx_buffer[1] = UART_TBMS_READ_TEMPS;
 
 	//Verified!
 	CRC_request = CRC16(tx_buffer, 2);		//should be 0x1B3F
@@ -2204,18 +2210,18 @@ uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2232,16 +2238,16 @@ uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x1B) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_TEMPS) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			uint8_t PL = rx_buffer[2]; //payload length in bytes
 			printf("Payload Length: 0x%02X\n", PL);
 			//Payload Length = PL = 2n bytes -> where n = 1,2,3 (DATA1,DATA2,DATA3)
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read bytes 4-2n+5 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read bytes 4-2n+5 from OK reply
 
 			int16_t DATA[] = {0};
 			uint32_t numData = (PL / 2); //2 bytes per data reading
@@ -2308,7 +2314,7 @@ uint8_t TinyBMS_UART_ReadDeviceTemperatures(UART_HandleTypeDef *huart2) {
  * 						 	  DATAn:LSB   	DATAn:MSB   	CRC:LSB 	CRC:MSB
  * 						 	       	 [UINT16]
  */
-uint8_t TinyBMS_UART_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadBatteryPackCellVoltages\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -2318,7 +2324,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x1C;
+	tx_buffer[1] = UART_TBMS_READ_CELL_VOLTAGES;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -2332,18 +2338,18 @@ uint8_t TinyBMS_UART_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2360,16 +2366,16 @@ uint8_t TinyBMS_UART_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x1C) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_CELL_VOLTAGES) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//Up to 16 Cells in Series: (Registers: 0x00-0x15) Cell 1 - Cell 16
 			uint8_t PL = rx_buffer[2];
 			//Payload Length = PL = 2n bytes
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to 2n+5 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to 2n+5 from OK reply
 
 			uint16_t cellVoltage[] = {0};
 			uint32_t numCells = (PL / 2); //2 bytes per data reading
@@ -2435,7 +2441,7 @@ uint8_t TinyBMS_UART_ReadBatteryPackCellVoltages(UART_HandleTypeDef *huart2) {
  *
  * 						   RL - Registers to read. Max. 100 (0x64) registers
  */
-uint8_t TinyBMS_UART_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t option, uint8_t rl) {
+uint8_t TinyBMS_UART_ReadSettingsValues(UART_HandleTypeDef *huart, uint8_t option, uint8_t rl) {
 	printf("TinyBMS_UART_ReadSettingsValues\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -2445,7 +2451,7 @@ uint8_t TinyBMS_UART_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t opti
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x1D;
+	tx_buffer[1] = UART_TBMS_READ_SETTINGS_VALUES;
 
 	//Check input
 	if((option != 0x01) && (option != 0x02) && (option != 0x03) && (option != 0x04)) {
@@ -2478,18 +2484,18 @@ uint8_t TinyBMS_UART_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t opti
 	tx_buffer[5] = CRC_LSB;
 	tx_buffer[6] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 7);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 7);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2506,16 +2512,16 @@ uint8_t TinyBMS_UART_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t opti
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x1D) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_SETTINGS_VALUES) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//Can read up to maximum of 100 (0x64) registers
 			uint8_t PL = rx_buffer[2];
 			//Payload Length = PL = 2n bytes
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to 2n+5 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to 2n+5 from OK reply
 
 			uint16_t settingsValues[] = {0};
 			uint32_t numSettings = (PL / 2); //2 bytes per data reading
@@ -2586,7 +2592,7 @@ uint8_t TinyBMS_UART_ReadSettingsValues(UART_HandleTypeDef *huart2, uint8_t opti
  * 						 	 DATA3 - Firmware public version
  * 						 	 DATA4 - Firmware internal version
  */
-uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadVersion\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -2596,8 +2602,7 @@ uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x1E;
-
+	tx_buffer[1] = UART_TBMS_READ_VERSION;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -2611,18 +2616,18 @@ uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2639,16 +2644,16 @@ uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x1E) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_VERSION) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//PL: (uint8_t)(uint8_t)(uint8_t)(uint16_t)
 			uint8_t PL = rx_buffer[2];
 			//Payload Length = PL = n bytes
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to  from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to  from OK reply
 
 			uint8_t versions8[] = {0};
 			uint16_t version16 = 0;
@@ -2682,17 +2687,29 @@ uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart2) {
 
 				//Print the TinyBMS Versions (Hardware, Hardware Changes, Firmware Public, or Firmware Internal)
 				printf("************ TinyBMS Versions ************\n");
-				if(PL >= 1) {
+				switch(PL) {
+				case 1:
 					printf("Hardware Version: %u\n", versions8[0]);
-				}
-				if(PL >= 2) {
+					break;
+				case 2:
+					printf("Hardware Version: %u\n", versions8[0]);
 					printf("Hardware Changes Version: %u\n", versions8[1]);
-				}
-				if(PL >= 3) {
+					break;
+				case 3:
+					printf("Hardware Version: %u\n", versions8[0]);
+					printf("Hardware Changes Version: %u\n", versions8[1]);
 					printf("Firmware Public Version: %u\n", versions8[2]);
-				}
-				if(PL >= 5) {
+					break;
+				case 5:
+					printf("Hardware Version: %u\n", versions8[0]);
+					printf("Hardware Changes Version: %u\n", versions8[1]);
+					printf("Firmware Public Version: %u\n", versions8[2]);
 					printf("Firmware Internal Version: %u\n", version16);
+					break;
+				default:
+					printf("Invalid Payload Value\n");
+					retval = CMD_FAILURE;
+					return retval;
 				}
 				printf("----------------------------------------\n");
 				retval = CMD_SUCCESS;
@@ -2736,7 +2753,7 @@ uint8_t TinyBMS_UART_ReadVersion(UART_HandleTypeDef *huart2) {
  * 						 	 DATA5 - Bootloader version
  * 						 	 DATA6 - Register map version
  */
-uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadVersionExtended\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -2746,8 +2763,7 @@ uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart2) {
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x1F;
-
+	tx_buffer[1] = UART_TBMS_READ_VERSION_EXTENDED;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -2761,18 +2777,18 @@ uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart2) {
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2789,16 +2805,16 @@ uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart2) {
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x1F) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_VERSION_EXTENDED) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 1); //read byte 3 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 1); //read byte 3 from OK reply
 
 			//PL: (uint8_t)(uint8_t)(uint8_t)(uint16_t)(uint8_t)(uint8_t)
 			uint8_t PL = rx_buffer[2];
 			//Payload Length = PL = n bytes
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], PL+2); //read from byte 4 to  from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], PL+2); //read from byte 4 to  from OK reply
 
 			uint8_t versions8[] = {0};
 			uint16_t version16 = 0;
@@ -2837,23 +2853,45 @@ uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart2) {
 
 				//Print the TinyBMS Versions (Hardware, Hardware Changes, Firmware Public, Firmware Internal, Bootloader, or Register Map)
 				printf("************ TinyBMS Extended Versions ************\n");
-				if(PL >= 1) {
+
+				switch(PL) {
+				case 1:
 					printf("Hardware Version: %u\n", versions8[0]);
-				}
-				if(PL >= 2) {
+					break;
+				case 2:
+					printf("Hardware Version: %u\n", versions8[0]);
 					printf("Hardware Changes Version: %u\n", versions8[1]);
-				}
-				if(PL >= 3) {
+					break;
+				case 3:
+					printf("Hardware Version: %u\n", versions8[0]);
+					printf("Hardware Changes Version: %u\n", versions8[1]);
 					printf("Firmware Public Version: %u\n", versions8[2]);
-				}
-				if(PL >= 5) {
+					break;
+				case 5:
+					printf("Hardware Version: %u\n", versions8[0]);
+					printf("Hardware Changes Version: %u\n", versions8[1]);
+					printf("Firmware Public Version: %u\n", versions8[2]);
 					printf("Firmware Internal Version: %u\n", version16);
-				}
-				if(PL >= 6) {
+					break;
+				case 6:
+					printf("Hardware Version: %u\n", versions8[0]);
+					printf("Hardware Changes Version: %u\n", versions8[1]);
+					printf("Firmware Public Version: %u\n", versions8[2]);
+					printf("Firmware Internal Version: %u\n", version16);
 					printf("Bootloader Version: %u\n", versions8[3]);
-				}
-				if(PL >= 7) {
+					break;
+				case 7:
+					printf("Hardware Version: %u\n", versions8[0]);
+					printf("Hardware Changes Version: %u\n", versions8[1]);
+					printf("Firmware Public Version: %u\n", versions8[2]);
+					printf("Firmware Internal Version: %u\n", version16);
+					printf("Bootloader Version: %u\n", versions8[3]);
 					printf("Register Map Version: %u\n", versions8[4]);
+					break;
+				default:
+					printf("Invalid Payload Value\n");
+					retval = CMD_FAILURE;
+					return retval;
 				}
 				printf("----------------------------------------\n");
 				retval = CMD_SUCCESS;
@@ -2897,7 +2935,7 @@ uint8_t TinyBMS_UART_ReadVersionExtended(UART_HandleTypeDef *huart2) {
  * 						 	 DATA2 - Distance left until empty battery (km)
  * 						 	 DATA3 - Estimated time left until empty battery (s)
  */
-uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart2) {
+uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *huart) {
 	printf("TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft\n");
 	uint8_t retval = CMD_FAILURE;
 
@@ -2907,7 +2945,7 @@ uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *hu
 
 	/* Request to BMS */
 	tx_buffer[0] = 0xAA;
-	tx_buffer[1] = 0x20;
+	tx_buffer[1] = UART_TBMS_READ_SPEED_DISTANCETIME_LEFT;
 
 	CRC_request = CRC16(tx_buffer, 2);
 	CRC_LSB = (CRC_request & 0xFF);
@@ -2921,18 +2959,18 @@ uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *hu
 	tx_buffer[2] = CRC_LSB;
 	tx_buffer[3] = CRC_MSB;
 
-	HAL_UART_Transmit_IT(huart2, (uint8_t *)tx_buffer, 4);
+	HAL_UART_Transmit_IT(&huart2, (uint8_t*)tx_buffer, 4);
 
 	/* Response from BMS */
-	HAL_UART_Receive_IT(huart2, (uint8_t *)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
+	HAL_UART_Receive_IT(&huart2, (uint8_t*)rx_buffer, 2); //read bytes 1-2 to check OK/ERROR
 
 	if(rx_buffer[0] == 0xAA) {
 
 		//[ERROR]
-		if(rx_buffer[1] == 0x00) {
+		if(rx_buffer[1] == NACK) {
 			printf("Response from BMS [ERROR]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[2], 4); //read bytes 3-6 from ERROR reply
 
 			uint8_t error = rx_buffer[3];
 
@@ -2949,10 +2987,10 @@ uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *hu
 			}
 
 		//[OK]
-		} else if(rx_buffer[1] == 0x20) {
+		} else if(rx_buffer[1] == UART_TBMS_READ_SPEED_DISTANCETIME_LEFT) {
 			printf("Response from BMS [OK]\n");
 
-			HAL_UART_Receive_IT(huart2, (uint8_t *)&rx_buffer[3], 14); //read from byte 3 to 16 from OK reply
+			HAL_UART_Receive_IT(&huart2, (uint8_t*)&rx_buffer[3], 14); //read from byte 3 to 16 from OK reply
 
 			//DATA1 - Speed (km/h)
 			uint32_t DATA1 = ((rx_buffer[5] << 24) | (rx_buffer[4] << 16) | (rx_buffer[3] << 8) | (rx_buffer[2]));
@@ -3025,9 +3063,63 @@ uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *hu
  * @note				-  Options: 0x01 - Clear Events , 0x02 - Clear Statistics , 0x05 - Reset BMS
  *
  */
-uint8_t TinyBMS_CAN_ResetClearEventsStatistics(CAN_HandleTypeDef *hcan1, uint8_t option) {
+uint8_t TinyBMS_CAN_ResetClearEventsStatistics(CAN_HandleTypeDef *hcan, uint8_t option) {
+	printf("TinyBMS_CAN_ResetClearEventsStatistics\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	switch(option) {
+	case 0x01:
+		printf("0x01 Clear Events\n");
+		break;
+	case 0x02:
+		printf("0x02 Clear Statistics\n");
+		break;
+	case 0x05:
+		printf("0x05 Reset BMS\n");
+		break;
+	default:
+		printf("Invalid option\n");
+		retval = CMD_FAILURE;
+		return retval;
+	}
+
+	uint8_t tx_msg[8] = {0x02, option, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_RESET_CLEAR_EVENTS_STATS)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_RESET_CLEAR_EVENTS_STATS | CMD: 0x%02X\n", rx_msg[1]);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3046,9 +3138,79 @@ uint8_t TinyBMS_CAN_ResetClearEventsStatistics(CAN_HandleTypeDef *hcan1, uint8_t
  * @note				-  A memory block is a group of one or more contiguous bytes of memory allocated
  * 						   by malloc(size_t size).
  */
-uint8_t TinyBMS_CAN_ReadRegBlock(CAN_HandleTypeDef *hcan1, uint8_t rl, uint16_t addr) {
+uint8_t TinyBMS_CAN_ReadRegBlock(CAN_HandleTypeDef *hcan, uint8_t rl, uint16_t addr) {
+	printf("TinyBMS_CAN_ReadRegBlock\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t addr_MSB = 0, addr_LSB = 0, msg_count = 1, pl = 0;
+	uint16_t data = 0;
 
+	/* Request to BMS */
+	//Check if number of registers to write is within bounds
+	if((rl <= 0) || (rl > 0x7F)) {
+		retval = CMD_FAILURE;
+		return retval;
+	}
+
+	//Starting address of Register Block
+	addr_MSB = ((addr >> 8) & 0xFF);
+	addr_LSB = (addr & 0xFF);
+
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_REG_BLOCK, addr_MSB, addr_LSB, 0x00, rl, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_REG_BLOCK)) {
+			if(msg_count == 1) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_REG_BLOCK | CMD: 0x%02X\n", rx_msg[1]);
+			}
+			pl = rx_msg[2];
+
+			//If DATAn is 2 bytes in length and Byte 6 counter is correct
+			//Message counter range: 1 to n vs Byte 6: 0 to n-1
+			if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
+				data = ((rx_msg[3] << 8) | rx_msg[4]);
+
+				// MSG1 - Addr: 0xABCD - Data: 0x1234
+				// MSG2 - Addr: 0xABDD - Data: 0x5678
+				printf("MSG%u - ", msg_count);
+				printf("Addr: 0x%04X - ", (addr+(sizeof(addr)*(msg_count-1))) );
+				printf("Data: 0x%04X\n", data);
+				msg_count++;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3068,9 +3230,89 @@ uint8_t TinyBMS_CAN_ReadRegBlock(CAN_HandleTypeDef *hcan1, uint8_t rl, uint16_t 
  *
  * @note				-  A memory block is a group of one or more contiguous bytes of memory allocated by malloc(size_t size).
  */
-uint8_t TinyBMS_CAN_WriteRegBlock(CAN_HandleTypeDef *hcan1, uint8_t rl, uint16_t addr, uint16_t data[]) {
+uint8_t TinyBMS_CAN_WriteRegBlock(CAN_HandleTypeDef *hcan, uint8_t rl, uint16_t addr, uint16_t data[]) {
+	printf("TinyBMS_CAN_WriteRegBlock\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8], tx_msg[8];
+	uint8_t addr_MSB = 0, addr_LSB = 0, data_MSB = 0, data_LSB = 0, msg_count = 1;
 
+	/* Request to BMS */
+	//Check if register block start address is within bounds
+	if((addr < 0x12C) || (addr > 0x18F)) {
+		retval = CMD_FAILURE;
+		return retval;
+	}
+
+	//Check if number of registers to write is within bounds
+	if((rl <= 0) || (rl > 0x64)) {
+		retval = CMD_FAILURE;
+		return retval;
+	}
+
+	//Starting address of Register Block
+	addr_MSB = ((addr >> 8) & 0xFF);
+	addr_LSB = (addr & 0xFF);
+
+	for(uint32_t i = 0; i < rl; i++) {
+		data_MSB = ((data[i] >> 8) & 0xFF);
+		data_LSB = (data[i] & 0xFF);
+
+		tx_msg[0] = CAN_TBMS_WRITE_REG_BLOCK;
+		tx_msg[1] = addr_MSB;
+		tx_msg[2] = addr_LSB;
+		tx_msg[3] = 0x00;
+		tx_msg[4] = rl;
+		tx_msg[5] = data_MSB;
+		tx_msg[6] = data_LSB;
+		tx_msg[7] = (msg_count-1);
+		CAN1_Tx(tx_msg);
+
+		//Message counter range: 1 to n vs Byte 8: 0 to n-1
+		msg_count++;
+	}
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_WRITE_REG_BLOCK)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_WRITE_REG_BLOCK | CMD: 0x%02X\n", rx_msg[1]);
+
+			//If Byte 5 is 0x00, Byte 6's rl matches input rl, and Bytes[3:4]'s address matches input address
+			uint16_t addr_check = ((rx_msg[2] << 8) | rx_msg[3]);
+			if((rx_msg[4] == 0x00) && (rx_msg[5] == rl) && (addr_check == addr)) {
+				printf("Success! Wrote a block of %u registers starting at address 0x%04X\n", rl, addr_check);
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3087,9 +3329,71 @@ uint8_t TinyBMS_CAN_WriteRegBlock(CAN_HandleTypeDef *hcan1, uint8_t rl, uint16_t
  * @note				-  PL: Payload length in bytes [UINT8]. BTSP: BMS timestamp in seconds [UINT32].
  * 						   TSP: Event timestamp in seconds [UINT24]. EVENT: BMS Event ID [UINT8].
  */
-uint8_t TinyBMS_CAN_ReadNewestEvents(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadNewestEvents(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadNewestEvents\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t pl = 0, msg_count = 1, IDn = 0;
+	uint32_t BTSP = 0, TSP = 0;
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_NEWEST_EVENTS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_NEWEST_EVENTS)) {
+			if(msg_count == 1) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_NEWEST_EVENTS | CMD: 0x%02X\n", rx_msg[1]);
+			}
+			pl = rx_msg[2];
+
+			//MSG1 - TinyBMS Timestamp
+			//If payload is 4 Bytes and Byte 8 is 0x00
+			if((rx_msg[7] == 0x00) && (pl == 4)) {
+				BTSP = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+				printf("TinyBMS Timestamp (s): [%lu]\n", BTSP);
+				msg_count++;
+			//MSG2..n - Newest Event ID + Timestamp
+			//If payload is 4 Bytes and Byte 8 is 1..n-1
+			} else if((rx_msg[7] == (msg_count-1)) && (pl == 4)) {
+				TSP = ((0x00 << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+				IDn = rx_msg[6];
+				printf("Event - ID: 0x%02X | Timestamp (s): [%lu]\n", IDn, TSP);
+				msg_count++;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3106,9 +3410,71 @@ uint8_t TinyBMS_CAN_ReadNewestEvents(CAN_HandleTypeDef *hcan1) {
  * @note				-  PL: Payload length in bytes [UINT8]. BTSP: BMS timestamp in seconds [UINT32].
  * 						   TSP: Event timestamp in seconds [UINT24]. EVENT: BMS Event ID [UINT8].
  */
-uint8_t TinyBMS_CAN_ReadAllEvents(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadAllEvents(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadAllEvents\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t pl = 0, msg_count = 1, IDn = 0;
+	uint32_t BTSP = 0, TSP = 0;
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_ALL_EVENTS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_ALL_EVENTS)) {
+			if(msg_count == 1) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_ALL_EVENTS | CMD: 0x%02X\n", rx_msg[1]);
+			}
+			pl = rx_msg[2];
+
+			//MSG1 - TinyBMS Timestamp
+			//If payload is 4 Bytes and Byte 8 is 0x00
+			if((rx_msg[7] == 0x00) && (pl == 4)) {
+				BTSP = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+				printf("TinyBMS Timestamp (s): [%lu]\n", BTSP);
+				msg_count++;
+			//MSG2..n - Event ID + Timestamp
+			//If payload is 4 Bytes and Byte 8 is 1..n-1
+			} else if((rx_msg[7] == (msg_count-1)) && (pl == 4)) {
+				TSP = ((0x00 << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+				IDn = rx_msg[6];
+				printf("Event - ID: 0x%02X | Timestamp (s): [%lu]\n", IDn, TSP);
+				msg_count++;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3128,9 +3494,50 @@ uint8_t TinyBMS_CAN_ReadAllEvents(CAN_HandleTypeDef *hcan1) {
  * 						 	  DATA:LSB   DATA   DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	               [FLOAT]
  */
-uint8_t TinyBMS_CAN_ReadBatteryPackVoltage(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadBatteryPackVoltage(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadBatteryPackVoltage\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_PACK_VOLTAGE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_PACK_VOLTAGE)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_PACK_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
+			uint32_t data = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+			float packVoltage = data;
+			printf("Secondary Battery Pack Voltage: %f (V)\n", packVoltage);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3150,9 +3557,50 @@ uint8_t TinyBMS_CAN_ReadBatteryPackVoltage(CAN_HandleTypeDef *hcan1) {
  * 						 	  DATA:LSB   DATA   DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	               [FLOAT]
  */
-uint8_t TinyBMS_CAN_ReadBatteryPackCurrent(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadBatteryPackCurrent(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadBatteryPackCurrent\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_PACK_CURRENT, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_PACK_CURRENT)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_PACK_CURRENT | CMD: 0x%02X\n", rx_msg[1]);
+			uint32_t data = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+			float packCurrent = data;
+			printf("Secondary Battery Pack Current: %f (A)\n", packCurrent);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3172,9 +3620,49 @@ uint8_t TinyBMS_CAN_ReadBatteryPackCurrent(CAN_HandleTypeDef *hcan1) {
  * 						 	  DATA:LSB   	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        [UINT16]
  */
-uint8_t TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadBatteryPackMaxCellVoltage\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_MAX_CELL_VOLTAGE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_MAX_CELL_VOLTAGE)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_MAX_CELL_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
+			uint16_t maxCellVoltage = ((rx_msg[3] << 8) | (rx_msg[2]));
+			printf("Secondary Battery Pack Maximum Cell Voltage: %u (mV)\n", maxCellVoltage);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3194,9 +3682,49 @@ uint8_t TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(CAN_HandleTypeDef *hcan1) {
  * 						 	  DATA:LSB   	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        [UINT16]
  */
-uint8_t TinyBMS_CAN_ReadBatteryPackMinCellVoltage(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadBatteryPackMinCellVoltage(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadBatteryPackMinCellVoltage\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_MIN_CELL_VOLTAGE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_MIN_CELL_VOLTAGE)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_MIN_CELL_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
+			uint16_t minCellVoltage = ((rx_msg[3] << 8) | (rx_msg[2]));
+			printf("Secondary Battery Pack Minimum Cell Voltage: %u (mV)\n", minCellVoltage);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3219,9 +3747,73 @@ uint8_t TinyBMS_CAN_ReadBatteryPackMinCellVoltage(CAN_HandleTypeDef *hcan1) {
  * 						   0x93 - Discharging [INFO], 0x94 - Regeneration [INFO]
  * 						   0x97 - Idle [INFO], 0x9B - Fault [ERROR]
  */
-uint8_t TinyBMS_CAN_ReadOnlineStatus(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadOnlineStatus(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadOnlineStatus\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_ONLINE_STATUS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_ONLINE_STATUS)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_ONLINE_STATUS | CMD: 0x%02X\n", rx_msg[1]);
+			uint16_t onlineStatus = ((rx_msg[3] << 8) | (rx_msg[2]));
+
+			switch(onlineStatus) {
+			case TBMS_STATUS_CHARGING:
+				printf("TinyBMS Online Status: 0x%02X - Charging [INFO]\n", onlineStatus);
+				break;
+			case TBMS_STATUS_FULLYCHARGED:
+				printf("TinyBMS Online Status: 0x%02X - Fully Charged [INFO]\n", onlineStatus);
+				break;
+			case TBMS_STATUS_DISCHARGING:
+				printf("TinyBMS Online Status: 0x%02X - Discharging [INFO]\n", onlineStatus);
+				break;
+			case TBMS_STATUS_REGENERATION:
+				printf("TinyBMS Online Status: 0x%02X - Regeneration [INFO]\n", onlineStatus);
+				break;
+			case TBMS_STATUS_IDLE:
+				printf("TinyBMS Online Status: 0x%02X - Idle [INFO]\n", onlineStatus);
+				break;
+			case TBMS_STATUS_FAULT:
+				printf("TinyBMS Online Status: 0x%02X - Fault [Error]\n", onlineStatus);
+				break;
+			default:
+				printf("Invalid TinyBMS OnlineStatus received\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3241,9 +3833,49 @@ uint8_t TinyBMS_CAN_ReadOnlineStatus(CAN_HandleTypeDef *hcan1) {
  * 						 	  DATA:LSB   DATA	DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        	  [UINT32]
  */
-uint8_t TinyBMS_CAN_ReadLifetimeCounter(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadLifetimeCounter(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadLifetimeCounter\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_LIFETIME_COUNTER, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_LIFETIME_COUNTER)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_LIFETIME_COUNTER | CMD: 0x%02X\n", rx_msg[1]);
+			uint32_t bms_lifetime = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+			printf("TinyBMS Lifetime Counter: %lu (s)\n", bms_lifetime);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3263,9 +3895,49 @@ uint8_t TinyBMS_CAN_ReadLifetimeCounter(CAN_HandleTypeDef *hcan1) {
  * 						 	  DATA:LSB   DATA	DATA	DATA:MSB   	CRC:LSB CRC:MSB
  * 						 	        	  [UINT32]
  */
-uint8_t TinyBMS_CAN_ReadEstimatedSOCValue(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadEstimatedSOCValue(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadEstimatedSOCValue\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_EST_SOC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_EST_SOC)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_EST_SOC | CMD: 0x%02X\n", rx_msg[1]);
+			uint32_t est_soc = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+			printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\n", est_soc);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3288,9 +3960,71 @@ uint8_t TinyBMS_CAN_ReadEstimatedSOCValue(CAN_HandleTypeDef *hcan1) {
  * 						  	(Reg 42) DATA2 - External Temp Sensor #1 (value of -327689 if NC)
  * 						  	(Reg 43) DATA3 - External Temp Sensor #2 (value of -327689 if NC)
  */
-uint8_t TinyBMS_CAN_ReadDeviceTemperatures(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadDeviceTemperatures(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadDeviceTemperatures\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t msg_count = 1, pl = 0;
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_TEMPS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_TEMPS)) {
+			if(msg_count == 1) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_TEMPS | CMD: 0x%02X\n", rx_msg[1]);
+			}
+			pl = rx_msg[2];
+
+			//MSG1
+			if((pl == 2) && (rx_msg[5] == 0x00)) {
+				int16_t temp1 = ((rx_msg[4] << 8) | (rx_msg[3]));
+				printf("TinyBMS   Internal Temp: %d (°C)\n", temp1);
+				msg_count++;
+			//MSG2
+			} else if((pl == 2) && (rx_msg[5] == 0x01)) {
+				int16_t temp2 = ((rx_msg[4] << 8) | (rx_msg[3]));
+				printf("TinyBMS External Temp 1: %d (°C)\n", temp2);
+				msg_count++;
+			//MSG3
+			} else if((pl == 2) && (rx_msg[5] == 0x02)) {
+				int16_t temp3 = ((rx_msg[4] << 8) | (rx_msg[3]));
+				printf("TinyBMS External Temp 2: %d (°C)\n", temp3);
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3309,9 +4043,65 @@ uint8_t TinyBMS_CAN_ReadDeviceTemperatures(CAN_HandleTypeDef *hcan1) {
  * 						 	  DATAn:LSB   	DATAn:MSB   	CRC:LSB 	CRC:MSB
  * 						 	       	 [UINT16]
  */
-uint8_t TinyBMS_CAN_ReadBatteryPackCellVoltages(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadBatteryPackCellVoltages(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadBatteryPackCellVoltages\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t msg_count = 1, pl = 0;
+	uint16_t cellVoltage = 0;
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_CELL_VOLTAGES, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_CELL_VOLTAGES)) {
+			if(msg_count == 1) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_CELL_VOLTAGES | CMD: 0x%02X\n", rx_msg[1]);
+			}
+			pl = rx_msg[2];
+
+			//If DATAn is 2 bytes in length and Byte 6 counter is correct
+			//Message counter range: 1 to n vs Byte 6: 0 to n-1
+			//msg_count is equal to the cell_count
+			if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
+				cellVoltage = ((rx_msg[4] << 8) | rx_msg[3]);
+				printf("Secondary Battery Pack - Cell#: %u | Voltage: %u (0.1mV Resolution)\n", msg_count, cellVoltage);
+				msg_count++;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3337,9 +4127,89 @@ uint8_t TinyBMS_CAN_ReadBatteryPackCellVoltages(CAN_HandleTypeDef *hcan1) {
  *
  * 						   RL - Registers to read. Max. 100 (0x64) registers
  */
-uint8_t TinyBMS_CAN_ReadSettingsValues(CAN_HandleTypeDef *hcan1, uint8_t option, uint8_t rl) {
+uint8_t TinyBMS_CAN_ReadSettingsValues(CAN_HandleTypeDef *hcan, uint8_t option, uint8_t rl) {
+	printf("TinyBMS_CAN_ReadSettingsValues\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t msg_count = 1, pl = 0;
+	uint16_t data = 0;
 
+	switch(option) {
+	case 0x01:
+		printf("0x01 Min Settings\n");
+		break;
+	case 0x02:
+		printf("0x02 Max Settings\n");
+		break;
+	case 0x03:
+		printf("0x03 Default Settings\n");
+		break;
+	case 0x04:
+		printf("0x04 Current Settings\n");
+	default:
+		printf("Invalid option\n");
+		retval = CMD_FAILURE;
+		return retval;
+	}
+
+	//Check if number of registers to read is within bounds
+	if((rl <= 0) || (rl > 0x64)) {
+		retval = CMD_FAILURE;
+		return retval;
+	}
+
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_SETTINGS_VALUES, option, 0x00, rl, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_SETTINGS_VALUES)) {
+			if(msg_count == 1) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_SETTINGS_VALUES | CMD: 0x%02X\n", rx_msg[1]);
+			}
+			pl = rx_msg[2];
+
+			//If DATAn is 2 bytes in length and Byte 6 counter is correct
+			//Message counter range: 1 to n vs Byte 6: 0 to n-1
+			//msg_count is equal to the settings_count
+			if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
+				data = ((rx_msg[4] << 8) | rx_msg[3]);
+				printf("TinyBMS Setting#: %u | Value: %u\n", msg_count, data);
+				msg_count++;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3362,9 +4232,85 @@ uint8_t TinyBMS_CAN_ReadSettingsValues(CAN_HandleTypeDef *hcan1, uint8_t option,
  * 						 	 DATA3 - Firmware public version
  * 						 	 DATA4 - Firmware internal version
  */
-uint8_t TinyBMS_CAN_ReadVersion(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadVersion(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadVersion\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t pl = 0;
+	uint8_t hw_version = 0, hw_changes = 0, firmware_public = 0;
+	uint16_t firmware_internal = 0;
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_VERSION, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_VERSION)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_VERSION | CMD: 0x%02X\n", rx_msg[1]);
+			pl = rx_msg[2];
+
+			switch(pl) {
+			case 1: //DATA1
+				hw_version = rx_msg[3];
+				printf("TinyBMS Hardware Version: %u\n", hw_version);
+				break;
+			case 2: //DATA1 + DATA2
+				hw_version = rx_msg[3];
+				hw_changes = rx_msg[4];
+				printf("TinyBMS Hardware Version: %u\n", hw_version);
+				printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
+				break;
+			case 3: //DATA1 + DATA2 + DATA3
+				hw_version = rx_msg[3];
+				hw_changes = rx_msg[4];
+				firmware_public = rx_msg[5];
+				printf("TinyBMS Hardware Version: %u\n", hw_version);
+				printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
+				printf("TinyBMS Firmware Public Version: %u\n", firmware_public);
+				break;
+			case 5: //DATA1 + DATA2 + DATA3 + DATA4
+				hw_version = rx_msg[3];
+				hw_changes = rx_msg[4];
+				firmware_public = rx_msg[5];
+				firmware_internal = ((rx_msg[7] << 8) | rx_msg[6]);
+				printf("TinyBMS Hardware Version: %u\n", hw_version);
+				printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
+				printf("TinyBMS Firmware Public Version: %u\n", firmware_public);
+				printf("TinyBMS Firmware Internal Version: %u\n", firmware_internal);
+				break;
+			default:
+				printf("Invalid Payload Value\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3389,9 +4335,72 @@ uint8_t TinyBMS_CAN_ReadVersion(CAN_HandleTypeDef *hcan1) {
  * 						 	 DATA2 - Distance left until empty battery (km)
  * 						 	 DATA3 - Estimated time left until empty battery (s)
  */
-uint8_t TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
+	uint8_t pl = 0, msg_count = 1;
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT)) {
+			if(msg_count == 1) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT | CMD: 0x%02X\n", rx_msg[1]);
+			}
+			pl = rx_msg[2];
+
+			//MSG1 - SPEED
+			if((pl == 4) && (rx_msg[7] == 0x00)) {
+				uint32_t data1 = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+				float speed = data1;
+				printf("TinyBMS Speed: %f (km/h)\n", speed);
+				msg_count++;
+			//MSG2 - DISTANCE LEFT
+			} else if((pl == 4) && (rx_msg[7] == 0x01)) {
+				uint32_t distanceLeft = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+				printf("TinyBMS Distance Left until Empty: %lu (km)\n", distanceLeft);
+				msg_count++;
+			//MSG3 - ESTIMATED TIME LEFT
+			} else if((pl == 4) && (rx_msg[7] == 0x02)) {
+				uint32_t timeLeft = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));;
+				printf("TinyBMS Time Left until Empty: %lu (s)\n", timeLeft);
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3407,9 +4416,49 @@ uint8_t TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(CAN_HandleTypeDef *hcan
  *
  * @note				-  Default after firmware update is 0x01
  */
-uint8_t TinyBMS_CAN_ReadNodeID(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_ReadNodeID(CAN_HandleTypeDef *hcan) {
+	printf("TinyBMS_CAN_ReadNodeID\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_READ_CAN_NODEID, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_CAN_NODEID)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_READ_CAN_NODEID | CMD: 0x%02X\n", rx_msg[1]);
+			uint8_t nodeID_current = rx_msg[2];
+			printf("TinyBMS Current CAN NodeID: %d\n", nodeID_current);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
 
@@ -3425,12 +4474,51 @@ uint8_t TinyBMS_CAN_ReadNodeID(CAN_HandleTypeDef *hcan1) {
  *
  * @note				-  Default after firmware update is 0x01
  */
-uint8_t TinyBMS_CAN_WriteNodeID(CAN_HandleTypeDef *hcan1) {
+uint8_t TinyBMS_CAN_WriteNodeID(CAN_HandleTypeDef *hcan, uint8_t nodeID) {
+	printf("TinyBMS_CAN_WriteNodeID\n");
 	uint8_t retval = CMD_FAILURE;
+	CAN_RxHeaderTypeDef RxHeader;
+	uint8_t rx_msg[8];
 
+	/* Request to BMS */
+	uint8_t tx_msg[8] = {CAN_TBMS_WRITE_CAN_NODEID, nodeID, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	CAN1_Tx(tx_msg);
+
+	/* Response from BMS */
+	//Loop until there are no more remaining messages in CAN_RX_FIFO0
+	while(HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) != 0) {
+		if(HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &RxHeader, rx_msg) != HAL_OK) {
+			Error_Handler();
+		}
+		//Activate Notifications (Interrupts) by setting CAN_IER bits
+		if(HAL_CAN_ActivateNotification(&hcan1, (CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_BUSOFF)) != HAL_OK) {
+			Error_Handler();
+		}
+
+		//[ERROR]
+		if(rx_msg[0] == NACK) {
+			printf("Response from BMS [Error]\n");
+			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+			uint8_t error = rx_msg[2];
+			retval = error;
+			return retval;
+
+		//[OK]
+		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_WRITE_CAN_NODEID)) {
+			printf("Response from BMS [OK]\n");
+			printf("CAN_TBMS_WRITE_CAN_NODEID | CMD: 0x%02X\n", rx_msg[1]);
+			uint8_t nodeID_new = rx_msg[2];
+			printf("TinyBMS New CAN NodeID: %d\n", nodeID_new);
+
+		} else {
+			printf("Data Corruption\n");
+			retval = CMD_FAILURE;
+			return retval;
+		}
+	}
+	retval = CMD_SUCCESS;
 	return retval;
 }
-
 
 /********************** CRC Calculation **********************/
 static uint16_t CRC16(const uint8_t* data, uint16_t length) {
