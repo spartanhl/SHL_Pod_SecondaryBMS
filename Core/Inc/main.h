@@ -2,8 +2,8 @@
 * @file main.h
 * @brief Spartan Hyperloop TinyBMS Testing
 * @author Oliver Moore
-* @version 1.2
-* @date 02-03-2022
+* @version 1.3
+* @date 02-17-2022
 ***********************************************/
 
 #include <stdint.h>

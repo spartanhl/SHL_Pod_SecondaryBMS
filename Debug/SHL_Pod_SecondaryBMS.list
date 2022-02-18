@@ -2406,7 +2406,7 @@ void Error_Handler(void) {
 	...
 
 08001608 <HAL_MspInit>:
-* @date 02-03-2022
+* @date 02-17-2022
 ***********************************************/
 
 #include "main.h"
