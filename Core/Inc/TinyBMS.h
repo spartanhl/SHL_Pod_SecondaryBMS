@@ -2,8 +2,8 @@
 * @file TinyBMS.h
 * @brief TinyBMS Library Header
 * @author Oliver Moore
-* @version 1.0
-* @date 11-21-2021
+* @version 1.3
+* @date 02-17-2022
 ***********************************************/
 
 #ifndef INC_TINYBMS_H_

@@ -2,8 +2,8 @@
 * @file TinyBMS.c
 * @brief TinyBMS Library - UART and CAN API
 * @author Oliver Moore
-* @version 1.2
-* @date 02-03-2022
+* @version 1.3
+* @date 02-17-2022
 ***********************************************/
 
 /*
