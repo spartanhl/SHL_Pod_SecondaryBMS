@@ -5,8 +5,9 @@
 ## Connections / Wiring
 **STM32 Nucleo-F746ZG**    <-**UART**->   **Energus TinyBMS s516-150A** \
 							  or \
-**STM32 Nucleo-F746ZG**   <-**CANBUS**->  **Energus TinyBMS s516-150A**
+**STM32 Nucleo-F746ZG**   <-**CAN-UART**->  **Energus TinyBMS s516-150A**
 
+ElCon Charger, TinyBMS (via CAN-UART converter), and STM32F7 communication via CAN2.0b (extended ID)
 
 ## Battery Pack Configuration
 **Secondary Pack Characteristics** \
