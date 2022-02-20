@@ -1,0 +1,11 @@
+How can I use CAN Bus control with my Elcon PFC charger?
+
+If your Elcon PFC charger has been programmed for CAN Bus control and you received a CAN Bus adapter 
+with your charger, pin 1 of the adapter must be connected to CAN-Lo from your BMS and pin 2 to CAN-Hi.  
+If your BMS does not already have a 120 ohm termination resistor across CAN-Lo and CAN-Hi, you will need 
+to add one.  The charger expects to receive every second a message from the BMS with CAN ID 1806E5F4 and 
+8-byte data with the voltage and current requested.  If the charger doesn't receive a valid CAN message 
+in 5 seconds, it stops charging until it receives a valid CAN message.  The charger sends out every second 
+a CAN status message with voltage, current and status information.  Up to 4 chargers with different 
+CAN IDs 1806E5F4, 1806E7F4, 1806E8F4 and 1806E9F4 can be connected to the same CAN bus and be controlled 
+by one BMS.

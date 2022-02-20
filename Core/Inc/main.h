@@ -18,6 +18,8 @@
 /*************** Function Prototypes ***************/
 void UART_Test_API(void);
 void CAN_Test_API(void);
+void TinyBMS_MonitorCharging(void);
+void TinyBMS_MonitorOperation(void);
 void SystemClock_Config_HSE(uint8_t clock_freq);
 void GPIO_Init(void);
 void UART_Init(void);
@@ -27,12 +29,14 @@ void CAN_Filter_Config(void);
 void CAN_Begin(void);
 void CAN1_Tx(uint8_t* message);
 void LED_Manage_Output(uint8_t led_num);
-void Send_Response(uint32_t StdId);
 void Error_Handler(void);
 
 /*************** Macros ***************/
 #define CMD_SUCCESS	0xAA
 #define CMD_FAILURE	0xFF
+
+#define MONITOR_CHARGING		2
+#define MONITOR_OPERATION		3
 
 #define SYS_CLOCK_FREQ_50MHZ 	50
 #define SYS_CLOCK_FREQ_84MHZ 	84
