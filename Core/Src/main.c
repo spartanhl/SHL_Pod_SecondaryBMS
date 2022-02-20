@@ -14,6 +14,7 @@ TIM_HandleTypeDef htim6;
 CAN_RxHeaderTypeDef RxHeader;
 
 uint8_t led_num = 0;
+uint8_t bms_opmode = 0;
 
 int main(void) {
 	/* Resets all peripherals, initializes the flash interface and Systick. */
@@ -34,8 +35,21 @@ int main(void) {
 	//UART_Test_API();
 	//CAN_Test_API();
 
+
   	while(1) {
 
+		switch(bms_opmode) {
+		case MONITOR_CHARGING:
+			TinyBMS_MonitorCharging();
+			break;
+
+		case MONITOR_OPERATION:
+			TinyBMS_MonitorOperation();
+			break;
+
+		default:
+			Error_Handler();
+		}
   	}
 }
 
@@ -106,6 +120,14 @@ void CAN_Test_API(void) {
 	//while(TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(&hcan1) != CMD_SUCCESS) {}
 	//while(TinyBMS_CAN_ReadNodeID(&hcan1) != CMD_SUCCESS) {}
 	//while(TinyBMS_CAN_WriteNodeID(&hcan1, nodeID) != CMD_SUCCESS) {}
+}
+
+void TinyBMS_MonitorCharging(void) {
+
+}
+
+void TinyBMS_MonitorOperation(void) {
+
 }
 
 void SystemClock_Config_HSE(uint8_t clock_freq) {
@@ -332,6 +354,8 @@ void CAN_Filter_Config(void) {
 	 * 	CAN2.0A (11-bit CAN Identifier only)
 	 *  Request   ID: 01000(Node ID Default=0x01..0x3F) = 01000 000001 = 01 0000 0001 = 0x101
 	 *  Response  ID: 01001(Node ID Default=0x01..0x3F) = 01001 000001 = 01 0100 0001 = 0x141
+	 *
+	 *  ElCon Secondary Pack Charger Node ID: 0x1806E5F4
 	 *
 	 *
 	 *	Filter Bank 0:	FB0_R1 (32-bit)    ID Reg / ID Reg 1
