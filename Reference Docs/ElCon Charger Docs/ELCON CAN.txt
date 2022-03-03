@@ -9,3 +9,24 @@ in 5 seconds, it stops charging until it receives a valid CAN message.  The char
 a CAN status message with voltage, current and status information.  Up to 4 chargers with different 
 CAN IDs 1806E5F4, 1806E7F4, 1806E8F4 and 1806E9F4 can be connected to the same CAN bus and be controlled 
 by one BMS.
+
+
+
+From:
+https://copperhilltech.com/blog/the-difference-between-sae-j1939-and-can-bus-the-extended-can-bus-protocol/
+
+"The 29-bit message identifier consists of the regular 11-bit base identifier and an 18-bit identifier extension. 
+The distinction between CAN base frame format and CAN extended frame format is accomplished by using the IDE bit 
+inside the Control Field (See image below). A low (dominant) IDE bit indicates an 11-bit message identifier; a high 
+(recessive) IDE bit indicates a 29-bit id."
+
+"An 11-bit identifier (standard format) allows a total of 211 (= 2048) different messages. A 29-bit identifier (extended format) 
+allows a total of 229 (= 536+ million) messages."
+
+"Note: Both formats, Standard (11-bit message ID) and Extended (29-bit message ID) may co-exist on the same CAN bus. 
+During bus arbitration, the standard 11-bit message ID frame will always have a higher priority than the extended 
+29-bit message ID frame with an identical 11-bit base identifier and thus gain bus access."
+
+"The Extended Format has some trade-offs: The bus latency time is longer (minimum 20 bit-times), messages in extended format 
+require more bandwidth (about 20 %), and the error detection performance is reduced (because the chosen polynomial for the 15-bit 
+CRC is optimized for frame length up to 112 bits)."

@@ -2,8 +2,8 @@
 * @file TinyBMS.c
 * @brief TinyBMS Library - UART and CAN API
 * @author Oliver Moore
-* @version 1.3
-* @date 02-17-2022
+* @version 1.4
+* @date 03-02-2022
 ***********************************************/
 
 /*
@@ -70,6 +70,11 @@ static uint16_t CRC16(const uint8_t* data, uint16_t length);
 /***************** External Handles ******************/
 extern UART_HandleTypeDef huart2;
 extern CAN_HandleTypeDef hcan1;
+
+/****************** TinyBMS CAN Identifiers ******************/
+//Initialize TinyBMS Request/Response StdId's to Default
+uint32_t TinybmsStdID_Request = TINYBMS_CAN_REQUEST_DEFAULT_STDID;
+uint32_t TinybmsStdID_Response = TINYBMS_CAN_RESPONSE_DEFAULT_STDID;
 
 /* ********************************
  *  TinyBMS UART Communication API
@@ -3042,7 +3047,7 @@ uint8_t TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(UART_HandleTypeDef *hu
  *        When multi-slave CAN bus topology is used, node ID can be assigned with 19 TinyBMS CAN command.
  *        Automatic node ID assignment is not available. */
 
-/* Note2: TinyBMS CAN-UART converter works aand CAN bus communication is available only when BMS device is in
+/* Note2: TinyBMS CAN-UART converter works and CAN bus communication is available only when BMS device is in
  * 		  an active state (charging, discharging, or Ignition enabled).
  */
 
@@ -3087,7 +3092,8 @@ uint8_t TinyBMS_CAN_ResetClearEventsStatistics(CAN_HandleTypeDef *hcan, uint8_t 
 	}
 
 	uint8_t tx_msg[8] = {0x02, option, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 2;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3100,23 +3106,26 @@ uint8_t TinyBMS_CAN_ResetClearEventsStatistics(CAN_HandleTypeDef *hcan, uint8_t 
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_RESET_CLEAR_EVENTS_STATS)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_RESET_CLEAR_EVENTS_STATS | CMD: 0x%02X\n", rx_msg[1]);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_RESET_CLEAR_EVENTS_STATS)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_RESET_CLEAR_EVENTS_STATS | CMD: 0x%02X\n", rx_msg[1]);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3158,7 +3167,8 @@ uint8_t TinyBMS_CAN_ReadRegBlock(CAN_HandleTypeDef *hcan, uint8_t rl, uint16_t a
 	addr_LSB = (addr & 0xFF);
 
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_REG_BLOCK, addr_MSB, addr_LSB, 0x00, rl, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 5;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3171,43 +3181,46 @@ uint8_t TinyBMS_CAN_ReadRegBlock(CAN_HandleTypeDef *hcan, uint8_t rl, uint16_t a
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_REG_BLOCK)) {
-			if(msg_count == 1) {
-				printf("Response from BMS [OK]\n");
-				printf("CAN_TBMS_READ_REG_BLOCK | CMD: 0x%02X\n", rx_msg[1]);
-			}
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_REG_BLOCK)) {
+				if(msg_count == 1) {
+					printf("Response from BMS [OK]\n");
+					printf("CAN_TBMS_READ_REG_BLOCK | CMD: 0x%02X\n", rx_msg[1]);
+				}
+				pl = rx_msg[2];
 
-			//If DATAn is 2 bytes in length and Byte 6 counter is correct
-			//Message counter range: 1 to n vs Byte 6: 0 to n-1
-			if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
-				data = ((rx_msg[3] << 8) | rx_msg[4]);
+				//If DATAn is 2 bytes in length and Byte 6 counter is correct
+				//Message counter range: 1 to n vs Byte 6: 0 to n-1
+				if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
+					data = ((rx_msg[3] << 8) | rx_msg[4]);
 
-				// MSG1 - Addr: 0xABCD - Data: 0x1234
-				// MSG2 - Addr: 0xABDD - Data: 0x5678
-				printf("MSG%u - ", msg_count);
-				printf("Addr: 0x%04X - ", (addr+(sizeof(addr)*(msg_count-1))) );
-				printf("Data: 0x%04X\n", data);
-				msg_count++;
+					// MSG1 - Addr: 0xABCD - Data: 0x1234
+					// MSG2 - Addr: 0xABDD - Data: 0x5678
+					printf("MSG%u - ", msg_count);
+					printf("Addr: 0x%04X - ", (addr+(sizeof(addr)*(msg_count-1))) );
+					printf("Data: 0x%04X\n", data);
+					msg_count++;
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3254,6 +3267,8 @@ uint8_t TinyBMS_CAN_WriteRegBlock(CAN_HandleTypeDef *hcan, uint8_t rl, uint16_t 
 	addr_MSB = ((addr >> 8) & 0xFF);
 	addr_LSB = (addr & 0xFF);
 
+	uint8_t tx_len = 8;
+
 	for(uint32_t i = 0; i < rl; i++) {
 		data_MSB = ((data[i] >> 8) & 0xFF);
 		data_LSB = (data[i] & 0xFF);
@@ -3266,7 +3281,7 @@ uint8_t TinyBMS_CAN_WriteRegBlock(CAN_HandleTypeDef *hcan, uint8_t rl, uint16_t 
 		tx_msg[5] = data_MSB;
 		tx_msg[6] = data_LSB;
 		tx_msg[7] = (msg_count-1);
-		CAN1_Tx(tx_msg);
+		CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 		//Message counter range: 1 to n vs Byte 8: 0 to n-1
 		msg_count++;
@@ -3283,33 +3298,36 @@ uint8_t TinyBMS_CAN_WriteRegBlock(CAN_HandleTypeDef *hcan, uint8_t rl, uint16_t 
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_WRITE_REG_BLOCK)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_WRITE_REG_BLOCK | CMD: 0x%02X\n", rx_msg[1]);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_WRITE_REG_BLOCK)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_WRITE_REG_BLOCK | CMD: 0x%02X\n", rx_msg[1]);
 
-			//If Byte 5 is 0x00, Byte 6's rl matches input rl, and Bytes[3:4]'s address matches input address
-			uint16_t addr_check = ((rx_msg[2] << 8) | rx_msg[3]);
-			if((rx_msg[4] == 0x00) && (rx_msg[5] == rl) && (addr_check == addr)) {
-				printf("Success! Wrote a block of %u registers starting at address 0x%04X\n", rl, addr_check);
+				//If Byte 5 is 0x00, Byte 6's rl matches input rl, and Bytes[3:4]'s address matches input address
+				uint16_t addr_check = ((rx_msg[2] << 8) | rx_msg[3]);
+				if((rx_msg[4] == 0x00) && (rx_msg[5] == rl) && (addr_check == addr)) {
+					printf("Success! Wrote a block of %u registers starting at address 0x%04X\n", rl, addr_check);
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3339,7 +3357,8 @@ uint8_t TinyBMS_CAN_ReadNewestEvents(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_NEWEST_EVENTS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3352,45 +3371,48 @@ uint8_t TinyBMS_CAN_ReadNewestEvents(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_NEWEST_EVENTS)) {
-			if(msg_count == 1) {
-				printf("Response from BMS [OK]\n");
-				printf("CAN_TBMS_READ_NEWEST_EVENTS | CMD: 0x%02X\n", rx_msg[1]);
-			}
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_NEWEST_EVENTS)) {
+				if(msg_count == 1) {
+					printf("Response from BMS [OK]\n");
+					printf("CAN_TBMS_READ_NEWEST_EVENTS | CMD: 0x%02X\n", rx_msg[1]);
+				}
+				pl = rx_msg[2];
 
-			//MSG1 - TinyBMS Timestamp
-			//If payload is 4 Bytes and Byte 8 is 0x00
-			if((rx_msg[7] == 0x00) && (pl == 4)) {
-				BTSP = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
-				printf("TinyBMS Timestamp (s): [%lu]\n", BTSP);
-				msg_count++;
-			//MSG2..n - Newest Event ID + Timestamp
-			//If payload is 4 Bytes and Byte 8 is 1..n-1
-			} else if((rx_msg[7] == (msg_count-1)) && (pl == 4)) {
-				TSP = ((0x00 << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
-				IDn = rx_msg[6];
-				printf("Event - ID: 0x%02X | Timestamp (s): [%lu]\n", IDn, TSP);
-				msg_count++;
+				//MSG1 - TinyBMS Timestamp
+				//If payload is 4 Bytes and Byte 8 is 0x00
+				if((rx_msg[7] == 0x00) && (pl == 4)) {
+					BTSP = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+					printf("TinyBMS Timestamp (s): [%lu]\n", BTSP);
+					msg_count++;
+				//MSG2..n - Newest Event ID + Timestamp
+				//If payload is 4 Bytes and Byte 8 is 1..n-1
+				} else if((rx_msg[7] == (msg_count-1)) && (pl == 4)) {
+					TSP = ((0x00 << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+					IDn = rx_msg[6];
+					printf("Event - ID: 0x%02X | Timestamp (s): [%lu]\n", IDn, TSP);
+					msg_count++;
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3420,7 +3442,8 @@ uint8_t TinyBMS_CAN_ReadAllEvents(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_ALL_EVENTS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3433,45 +3456,48 @@ uint8_t TinyBMS_CAN_ReadAllEvents(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_ALL_EVENTS)) {
-			if(msg_count == 1) {
-				printf("Response from BMS [OK]\n");
-				printf("CAN_TBMS_READ_ALL_EVENTS | CMD: 0x%02X\n", rx_msg[1]);
-			}
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_ALL_EVENTS)) {
+				if(msg_count == 1) {
+					printf("Response from BMS [OK]\n");
+					printf("CAN_TBMS_READ_ALL_EVENTS | CMD: 0x%02X\n", rx_msg[1]);
+				}
+				pl = rx_msg[2];
 
-			//MSG1 - TinyBMS Timestamp
-			//If payload is 4 Bytes and Byte 8 is 0x00
-			if((rx_msg[7] == 0x00) && (pl == 4)) {
-				BTSP = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
-				printf("TinyBMS Timestamp (s): [%lu]\n", BTSP);
-				msg_count++;
-			//MSG2..n - Event ID + Timestamp
-			//If payload is 4 Bytes and Byte 8 is 1..n-1
-			} else if((rx_msg[7] == (msg_count-1)) && (pl == 4)) {
-				TSP = ((0x00 << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
-				IDn = rx_msg[6];
-				printf("Event - ID: 0x%02X | Timestamp (s): [%lu]\n", IDn, TSP);
-				msg_count++;
+				//MSG1 - TinyBMS Timestamp
+				//If payload is 4 Bytes and Byte 8 is 0x00
+				if((rx_msg[7] == 0x00) && (pl == 4)) {
+					BTSP = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+					printf("TinyBMS Timestamp (s): [%lu]\n", BTSP);
+					msg_count++;
+				//MSG2..n - Event ID + Timestamp
+				//If payload is 4 Bytes and Byte 8 is 1..n-1
+				} else if((rx_msg[7] == (msg_count-1)) && (pl == 4)) {
+					TSP = ((0x00 << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+					IDn = rx_msg[6];
+					printf("Event - ID: 0x%02X | Timestamp (s): [%lu]\n", IDn, TSP);
+					msg_count++;
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3502,7 +3528,8 @@ uint8_t TinyBMS_CAN_ReadBatteryPackVoltage(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_PACK_VOLTAGE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3515,26 +3542,29 @@ uint8_t TinyBMS_CAN_ReadBatteryPackVoltage(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_PACK_VOLTAGE)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_PACK_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
-			uint32_t data = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
-			float packVoltage = data;
-			printf("Secondary Battery Pack Voltage: %f (V)\n", packVoltage);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_PACK_VOLTAGE)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_PACK_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
+				uint32_t data = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+				float packVoltage = data;
+				printf("Secondary Battery Pack Voltage: %f (V)\n", packVoltage);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3565,7 +3595,8 @@ uint8_t TinyBMS_CAN_ReadBatteryPackCurrent(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_PACK_CURRENT, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3578,26 +3609,29 @@ uint8_t TinyBMS_CAN_ReadBatteryPackCurrent(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_PACK_CURRENT)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_PACK_CURRENT | CMD: 0x%02X\n", rx_msg[1]);
-			uint32_t data = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
-			float packCurrent = data;
-			printf("Secondary Battery Pack Current: %f (A)\n", packCurrent);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_PACK_CURRENT)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_PACK_CURRENT | CMD: 0x%02X\n", rx_msg[1]);
+				uint32_t data = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+				float packCurrent = data;
+				printf("Secondary Battery Pack Current: %f (A)\n", packCurrent);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3628,7 +3662,8 @@ uint8_t TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_MAX_CELL_VOLTAGE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3641,25 +3676,28 @@ uint8_t TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_MAX_CELL_VOLTAGE)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_MAX_CELL_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
-			uint16_t maxCellVoltage = ((rx_msg[3] << 8) | (rx_msg[2]));
-			printf("Secondary Battery Pack Maximum Cell Voltage: %u (mV)\n", maxCellVoltage);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_MAX_CELL_VOLTAGE)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_MAX_CELL_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
+				uint16_t maxCellVoltage = ((rx_msg[3] << 8) | (rx_msg[2]));
+				printf("Secondary Battery Pack Maximum Cell Voltage: %u (mV)\n", maxCellVoltage);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3690,7 +3728,8 @@ uint8_t TinyBMS_CAN_ReadBatteryPackMinCellVoltage(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_MIN_CELL_VOLTAGE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3703,25 +3742,28 @@ uint8_t TinyBMS_CAN_ReadBatteryPackMinCellVoltage(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_MIN_CELL_VOLTAGE)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_MIN_CELL_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
-			uint16_t minCellVoltage = ((rx_msg[3] << 8) | (rx_msg[2]));
-			printf("Secondary Battery Pack Minimum Cell Voltage: %u (mV)\n", minCellVoltage);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_MIN_CELL_VOLTAGE)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_MIN_CELL_VOLTAGE | CMD: 0x%02X\n", rx_msg[1]);
+				uint16_t minCellVoltage = ((rx_msg[3] << 8) | (rx_msg[2]));
+				printf("Secondary Battery Pack Minimum Cell Voltage: %u (mV)\n", minCellVoltage);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3755,7 +3797,8 @@ uint8_t TinyBMS_CAN_ReadOnlineStatus(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_ONLINE_STATUS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3768,49 +3811,52 @@ uint8_t TinyBMS_CAN_ReadOnlineStatus(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_ONLINE_STATUS)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_ONLINE_STATUS | CMD: 0x%02X\n", rx_msg[1]);
-			uint16_t onlineStatus = ((rx_msg[3] << 8) | (rx_msg[2]));
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_ONLINE_STATUS)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_ONLINE_STATUS | CMD: 0x%02X\n", rx_msg[1]);
+				uint16_t onlineStatus = ((rx_msg[3] << 8) | (rx_msg[2]));
 
-			switch(onlineStatus) {
-			case TBMS_STATUS_CHARGING:
-				printf("TinyBMS Online Status: 0x%02X - Charging [INFO]\n", onlineStatus);
-				break;
-			case TBMS_STATUS_FULLYCHARGED:
-				printf("TinyBMS Online Status: 0x%02X - Fully Charged [INFO]\n", onlineStatus);
-				break;
-			case TBMS_STATUS_DISCHARGING:
-				printf("TinyBMS Online Status: 0x%02X - Discharging [INFO]\n", onlineStatus);
-				break;
-			case TBMS_STATUS_REGENERATION:
-				printf("TinyBMS Online Status: 0x%02X - Regeneration [INFO]\n", onlineStatus);
-				break;
-			case TBMS_STATUS_IDLE:
-				printf("TinyBMS Online Status: 0x%02X - Idle [INFO]\n", onlineStatus);
-				break;
-			case TBMS_STATUS_FAULT:
-				printf("TinyBMS Online Status: 0x%02X - Fault [Error]\n", onlineStatus);
-				break;
-			default:
-				printf("Invalid TinyBMS OnlineStatus received\n");
+				switch(onlineStatus) {
+				case TBMS_STATUS_CHARGING:
+					printf("TinyBMS Online Status: 0x%02X - Charging [INFO]\n", onlineStatus);
+					break;
+				case TBMS_STATUS_FULLYCHARGED:
+					printf("TinyBMS Online Status: 0x%02X - Fully Charged [INFO]\n", onlineStatus);
+					break;
+				case TBMS_STATUS_DISCHARGING:
+					printf("TinyBMS Online Status: 0x%02X - Discharging [INFO]\n", onlineStatus);
+					break;
+				case TBMS_STATUS_REGENERATION:
+					printf("TinyBMS Online Status: 0x%02X - Regeneration [INFO]\n", onlineStatus);
+					break;
+				case TBMS_STATUS_IDLE:
+					printf("TinyBMS Online Status: 0x%02X - Idle [INFO]\n", onlineStatus);
+					break;
+				case TBMS_STATUS_FAULT:
+					printf("TinyBMS Online Status: 0x%02X - Fault [Error]\n", onlineStatus);
+					break;
+				default:
+					printf("Invalid TinyBMS OnlineStatus received\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
+			} else {
+				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3841,7 +3887,8 @@ uint8_t TinyBMS_CAN_ReadLifetimeCounter(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_LIFETIME_COUNTER, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3854,25 +3901,28 @@ uint8_t TinyBMS_CAN_ReadLifetimeCounter(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_LIFETIME_COUNTER)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_LIFETIME_COUNTER | CMD: 0x%02X\n", rx_msg[1]);
-			uint32_t bms_lifetime = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
-			printf("TinyBMS Lifetime Counter: %lu (s)\n", bms_lifetime);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_LIFETIME_COUNTER)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_LIFETIME_COUNTER | CMD: 0x%02X\n", rx_msg[1]);
+				uint32_t bms_lifetime = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+				printf("TinyBMS Lifetime Counter: %lu (s)\n", bms_lifetime);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3903,7 +3953,8 @@ uint8_t TinyBMS_CAN_ReadEstimatedSOCValue(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_EST_SOC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3916,25 +3967,28 @@ uint8_t TinyBMS_CAN_ReadEstimatedSOCValue(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_EST_SOC)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_EST_SOC | CMD: 0x%02X\n", rx_msg[1]);
-			uint32_t est_soc = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
-			printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\n", est_soc);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_EST_SOC)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_EST_SOC | CMD: 0x%02X\n", rx_msg[1]);
+				uint32_t est_soc = ((rx_msg[5] << 24) | (rx_msg[4] << 16) | (rx_msg[3] << 8) | (rx_msg[2]));
+				printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\n", est_soc);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -3969,7 +4023,8 @@ uint8_t TinyBMS_CAN_ReadDeviceTemperatures(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_TEMPS, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -3982,46 +4037,49 @@ uint8_t TinyBMS_CAN_ReadDeviceTemperatures(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_TEMPS)) {
-			if(msg_count == 1) {
-				printf("Response from BMS [OK]\n");
-				printf("CAN_TBMS_READ_TEMPS | CMD: 0x%02X\n", rx_msg[1]);
-			}
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_TEMPS)) {
+				if(msg_count == 1) {
+					printf("Response from BMS [OK]\n");
+					printf("CAN_TBMS_READ_TEMPS | CMD: 0x%02X\n", rx_msg[1]);
+				}
+				pl = rx_msg[2];
 
-			//MSG1
-			if((pl == 2) && (rx_msg[5] == 0x00)) {
-				int16_t temp1 = ((rx_msg[4] << 8) | (rx_msg[3]));
-				printf("TinyBMS   Internal Temp: %d (°C)\n", temp1);
-				msg_count++;
-			//MSG2
-			} else if((pl == 2) && (rx_msg[5] == 0x01)) {
-				int16_t temp2 = ((rx_msg[4] << 8) | (rx_msg[3]));
-				printf("TinyBMS External Temp 1: %d (°C)\n", temp2);
-				msg_count++;
-			//MSG3
-			} else if((pl == 2) && (rx_msg[5] == 0x02)) {
-				int16_t temp3 = ((rx_msg[4] << 8) | (rx_msg[3]));
-				printf("TinyBMS External Temp 2: %d (°C)\n", temp3);
+				//MSG1
+				if((pl == 2) && (rx_msg[5] == 0x00)) {
+					int16_t temp1 = ((rx_msg[4] << 8) | (rx_msg[3]));
+					printf("TinyBMS   Internal Temp: %d (°C)\n", temp1);
+					msg_count++;
+				//MSG2
+				} else if((pl == 2) && (rx_msg[5] == 0x01)) {
+					int16_t temp2 = ((rx_msg[4] << 8) | (rx_msg[3]));
+					printf("TinyBMS External Temp 1: %d (°C)\n", temp2);
+					msg_count++;
+				//MSG3
+				} else if((pl == 2) && (rx_msg[5] == 0x02)) {
+					int16_t temp3 = ((rx_msg[4] << 8) | (rx_msg[3]));
+					printf("TinyBMS External Temp 2: %d (°C)\n", temp3);
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -4053,7 +4111,8 @@ uint8_t TinyBMS_CAN_ReadBatteryPackCellVoltages(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_CELL_VOLTAGES, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -4066,39 +4125,42 @@ uint8_t TinyBMS_CAN_ReadBatteryPackCellVoltages(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_CELL_VOLTAGES)) {
-			if(msg_count == 1) {
-				printf("Response from BMS [OK]\n");
-				printf("CAN_TBMS_READ_CELL_VOLTAGES | CMD: 0x%02X\n", rx_msg[1]);
-			}
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_CELL_VOLTAGES)) {
+				if(msg_count == 1) {
+					printf("Response from BMS [OK]\n");
+					printf("CAN_TBMS_READ_CELL_VOLTAGES | CMD: 0x%02X\n", rx_msg[1]);
+				}
+				pl = rx_msg[2];
 
-			//If DATAn is 2 bytes in length and Byte 6 counter is correct
-			//Message counter range: 1 to n vs Byte 6: 0 to n-1
-			//msg_count is equal to the cell_count
-			if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
-				cellVoltage = ((rx_msg[4] << 8) | rx_msg[3]);
-				printf("Secondary Battery Pack - Cell#: %u | Voltage: %u (0.1mV Resolution)\n", msg_count, cellVoltage);
-				msg_count++;
+				//If DATAn is 2 bytes in length and Byte 6 counter is correct
+				//Message counter range: 1 to n vs Byte 6: 0 to n-1
+				//msg_count is equal to the cell_count
+				if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
+					cellVoltage = ((rx_msg[4] << 8) | rx_msg[3]);
+					printf("Secondary Battery Pack - Cell#: %u | Voltage: %u (0.1mV Resolution)\n", msg_count, cellVoltage);
+					msg_count++;
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -4161,7 +4223,8 @@ uint8_t TinyBMS_CAN_ReadSettingsValues(CAN_HandleTypeDef *hcan, uint8_t option, 
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_SETTINGS_VALUES, option, 0x00, rl, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 4;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -4174,39 +4237,42 @@ uint8_t TinyBMS_CAN_ReadSettingsValues(CAN_HandleTypeDef *hcan, uint8_t option, 
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_SETTINGS_VALUES)) {
-			if(msg_count == 1) {
-				printf("Response from BMS [OK]\n");
-				printf("CAN_TBMS_READ_SETTINGS_VALUES | CMD: 0x%02X\n", rx_msg[1]);
-			}
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_SETTINGS_VALUES)) {
+				if(msg_count == 1) {
+					printf("Response from BMS [OK]\n");
+					printf("CAN_TBMS_READ_SETTINGS_VALUES | CMD: 0x%02X\n", rx_msg[1]);
+				}
+				pl = rx_msg[2];
 
-			//If DATAn is 2 bytes in length and Byte 6 counter is correct
-			//Message counter range: 1 to n vs Byte 6: 0 to n-1
-			//msg_count is equal to the settings_count
-			if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
-				data = ((rx_msg[4] << 8) | rx_msg[3]);
-				printf("TinyBMS Setting#: %u | Value: %u\n", msg_count, data);
-				msg_count++;
+				//If DATAn is 2 bytes in length and Byte 6 counter is correct
+				//Message counter range: 1 to n vs Byte 6: 0 to n-1
+				//msg_count is equal to the settings_count
+				if((pl == 2) && (rx_msg[5] == (msg_count-1))) {
+					data = ((rx_msg[4] << 8) | rx_msg[3]);
+					printf("TinyBMS Setting#: %u | Value: %u\n", msg_count, data);
+					msg_count++;
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -4243,7 +4309,8 @@ uint8_t TinyBMS_CAN_ReadVersion(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_VERSION, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -4256,58 +4323,61 @@ uint8_t TinyBMS_CAN_ReadVersion(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_VERSION)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_VERSION | CMD: 0x%02X\n", rx_msg[1]);
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_VERSION)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_VERSION | CMD: 0x%02X\n", rx_msg[1]);
+				pl = rx_msg[2];
 
-			switch(pl) {
-			case 1: //DATA1
-				hw_version = rx_msg[3];
-				printf("TinyBMS Hardware Version: %u\n", hw_version);
-				break;
-			case 2: //DATA1 + DATA2
-				hw_version = rx_msg[3];
-				hw_changes = rx_msg[4];
-				printf("TinyBMS Hardware Version: %u\n", hw_version);
-				printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
-				break;
-			case 3: //DATA1 + DATA2 + DATA3
-				hw_version = rx_msg[3];
-				hw_changes = rx_msg[4];
-				firmware_public = rx_msg[5];
-				printf("TinyBMS Hardware Version: %u\n", hw_version);
-				printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
-				printf("TinyBMS Firmware Public Version: %u\n", firmware_public);
-				break;
-			case 5: //DATA1 + DATA2 + DATA3 + DATA4
-				hw_version = rx_msg[3];
-				hw_changes = rx_msg[4];
-				firmware_public = rx_msg[5];
-				firmware_internal = ((rx_msg[7] << 8) | rx_msg[6]);
-				printf("TinyBMS Hardware Version: %u\n", hw_version);
-				printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
-				printf("TinyBMS Firmware Public Version: %u\n", firmware_public);
-				printf("TinyBMS Firmware Internal Version: %u\n", firmware_internal);
-				break;
-			default:
-				printf("Invalid Payload Value\n");
+				switch(pl) {
+				case 1: //DATA1
+					hw_version = rx_msg[3];
+					printf("TinyBMS Hardware Version: %u\n", hw_version);
+					break;
+				case 2: //DATA1 + DATA2
+					hw_version = rx_msg[3];
+					hw_changes = rx_msg[4];
+					printf("TinyBMS Hardware Version: %u\n", hw_version);
+					printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
+					break;
+				case 3: //DATA1 + DATA2 + DATA3
+					hw_version = rx_msg[3];
+					hw_changes = rx_msg[4];
+					firmware_public = rx_msg[5];
+					printf("TinyBMS Hardware Version: %u\n", hw_version);
+					printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
+					printf("TinyBMS Firmware Public Version: %u\n", firmware_public);
+					break;
+				case 5: //DATA1 + DATA2 + DATA3 + DATA4
+					hw_version = rx_msg[3];
+					hw_changes = rx_msg[4];
+					firmware_public = rx_msg[5];
+					firmware_internal = ((rx_msg[7] << 8) | rx_msg[6]);
+					printf("TinyBMS Hardware Version: %u\n", hw_version);
+					printf("TinyBMS Hardware Changes Version: %u\n", hw_changes);
+					printf("TinyBMS Firmware Public Version: %u\n", firmware_public);
+					printf("TinyBMS Firmware Internal Version: %u\n", firmware_internal);
+					break;
+				default:
+					printf("Invalid Payload Value\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+			} else {
+				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -4344,7 +4414,8 @@ uint8_t TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(CAN_HandleTypeDef *hcan
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -4357,47 +4428,50 @@ uint8_t TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft(CAN_HandleTypeDef *hcan
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT)) {
-			if(msg_count == 1) {
-				printf("Response from BMS [OK]\n");
-				printf("CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT | CMD: 0x%02X\n", rx_msg[1]);
-			}
-			pl = rx_msg[2];
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT)) {
+				if(msg_count == 1) {
+					printf("Response from BMS [OK]\n");
+					printf("CAN_TBMS_READ_SPEED_DISTANCETIME_LEFT | CMD: 0x%02X\n", rx_msg[1]);
+				}
+				pl = rx_msg[2];
 
-			//MSG1 - SPEED
-			if((pl == 4) && (rx_msg[7] == 0x00)) {
-				uint32_t data1 = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
-				float speed = data1;
-				printf("TinyBMS Speed: %f (km/h)\n", speed);
-				msg_count++;
-			//MSG2 - DISTANCE LEFT
-			} else if((pl == 4) && (rx_msg[7] == 0x01)) {
-				uint32_t distanceLeft = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
-				printf("TinyBMS Distance Left until Empty: %lu (km)\n", distanceLeft);
-				msg_count++;
-			//MSG3 - ESTIMATED TIME LEFT
-			} else if((pl == 4) && (rx_msg[7] == 0x02)) {
-				uint32_t timeLeft = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));;
-				printf("TinyBMS Time Left until Empty: %lu (s)\n", timeLeft);
+				//MSG1 - SPEED
+				if((pl == 4) && (rx_msg[7] == 0x00)) {
+					uint32_t data1 = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+					float speed = data1;
+					printf("TinyBMS Speed: %f (km/h)\n", speed);
+					msg_count++;
+				//MSG2 - DISTANCE LEFT
+				} else if((pl == 4) && (rx_msg[7] == 0x01)) {
+					uint32_t distanceLeft = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+					printf("TinyBMS Distance Left until Empty: %lu (km)\n", distanceLeft);
+					msg_count++;
+				//MSG3 - ESTIMATED TIME LEFT
+				} else if((pl == 4) && (rx_msg[7] == 0x02)) {
+					uint32_t timeLeft = ((rx_msg[6] << 24) | (rx_msg[5] << 16) | (rx_msg[4] << 8) | (rx_msg[3]));
+					printf("TinyBMS Time Left until Empty: %lu (s)\n", timeLeft);
+				} else {
+					printf("Data Corruption\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+
 			} else {
 				printf("Data Corruption\n");
 				retval = CMD_FAILURE;
 				return retval;
 			}
-
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -4424,7 +4498,8 @@ uint8_t TinyBMS_CAN_ReadNodeID(CAN_HandleTypeDef *hcan) {
 
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_READ_CAN_NODEID, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 1;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -4437,25 +4512,39 @@ uint8_t TinyBMS_CAN_ReadNodeID(CAN_HandleTypeDef *hcan) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		//Search for current NodeID by accepting any data frame with Response StdID of 0x241-0x27F (full range)
+		if(((RxHeader.StdId >= TINYBMS_CAN_RESPONSE_STDID_MIN) && (RxHeader.StdId <= TINYBMS_CAN_RESPONSE_STDID_MAX)) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_CAN_NODEID)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_READ_CAN_NODEID | CMD: 0x%02X\n", rx_msg[1]);
-			uint8_t nodeID_current = rx_msg[2];
-			printf("TinyBMS Current CAN NodeID: %d\n", nodeID_current);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_READ_CAN_NODEID)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_READ_CAN_NODEID | CMD: 0x%02X\n", rx_msg[1]);
+				uint8_t nodeID_current = rx_msg[2];
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+				//CAN-UART converter CAN Node ID: must be between 0x01 to 0x3F
+				if((nodeID_current < TINYBMS_CAN_NODEID_MIN) || (nodeID_current > TINYBMS_CAN_NODEID_MAX)) {
+					printf("TinyBMS CAN NodeID out of range\n");
+					retval = CMD_FAILURE;
+					return retval;
+				}
+				//Update both StdID's to reflect current NodeID
+				TinybmsStdID_Request = (uint32_t)(TINYBMS_CAN_REQUEST_BASE_STDID + nodeID_current);
+				TinybmsStdID_Response = (uint32_t)(TINYBMS_CAN_RESPONSE_BASE_STDID + nodeID_current);
+				printf("TinyBMS Current CAN NodeID: %d\n", nodeID_current);
+
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;
@@ -4480,9 +4569,17 @@ uint8_t TinyBMS_CAN_WriteNodeID(CAN_HandleTypeDef *hcan, uint8_t nodeID) {
 	CAN_RxHeaderTypeDef RxHeader;
 	uint8_t rx_msg[8];
 
+	//CAN-UART converter CAN Node ID: must be between 0x01 to 0x3F
+	if((nodeID < TINYBMS_CAN_NODEID_MIN) || (nodeID > TINYBMS_CAN_NODEID_MAX)) {
+		printf("TinyBMS CAN NodeID out of range\n");
+		retval = CMD_FAILURE;
+		return retval;
+	}
+
 	/* Request to BMS */
 	uint8_t tx_msg[8] = {CAN_TBMS_WRITE_CAN_NODEID, nodeID, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	CAN1_Tx(tx_msg);
+	uint8_t tx_len = 2;
+	CAN1_Tx(TINYBMS, tx_msg, tx_len);
 
 	/* Response from BMS */
 	//Loop until there are no more remaining messages in CAN_RX_FIFO0
@@ -4495,25 +4592,30 @@ uint8_t TinyBMS_CAN_WriteNodeID(CAN_HandleTypeDef *hcan, uint8_t nodeID) {
 			Error_Handler();
 		}
 
-		//[ERROR]
-		if(rx_msg[0] == NACK) {
-			printf("Response from BMS [Error]\n");
-			printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
-			uint8_t error = rx_msg[2];
-			retval = error;
-			return retval;
+		//Data Frame from TinyBMS
+		if((RxHeader.StdId == TinybmsStdID_Response) && (RxHeader.RTR == 0)) {
+			//[ERROR]
+			if(rx_msg[0] == NACK) {
+				printf("Response from BMS [Error]\n");
+				printf("CMD: 0x%02X | ERROR Code: 0x%02X\n", rx_msg[1], rx_msg[2]);
+				uint8_t error = rx_msg[2];
+				retval = error;
+				return retval;
 
-		//[OK]
-		} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_WRITE_CAN_NODEID)) {
-			printf("Response from BMS [OK]\n");
-			printf("CAN_TBMS_WRITE_CAN_NODEID | CMD: 0x%02X\n", rx_msg[1]);
-			uint8_t nodeID_new = rx_msg[2];
-			printf("TinyBMS New CAN NodeID: %d\n", nodeID_new);
+			//[OK]
+			} else if((rx_msg[0] == ACK) && (rx_msg[1] == CAN_TBMS_WRITE_CAN_NODEID) && (rx_msg[2] == nodeID)) {
+				printf("Response from BMS [OK]\n");
+				printf("CAN_TBMS_WRITE_CAN_NODEID | CMD: 0x%02X\n", rx_msg[1]);
+				//Update both StdID's to reflect new NodeID
+				TinybmsStdID_Request = (uint32_t)(TINYBMS_CAN_REQUEST_BASE_STDID + nodeID);
+				TinybmsStdID_Response = (uint32_t)(TINYBMS_CAN_RESPONSE_BASE_STDID + nodeID);
+				printf("TinyBMS New CAN NodeID: 0x%02X\n", nodeID);
 
-		} else {
-			printf("Data Corruption\n");
-			retval = CMD_FAILURE;
-			return retval;
+			} else {
+				printf("Data Corruption\n");
+				retval = CMD_FAILURE;
+				return retval;
+			}
 		}
 	}
 	retval = CMD_SUCCESS;

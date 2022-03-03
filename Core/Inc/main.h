@@ -2,8 +2,8 @@
 * @file main.h
 * @brief Spartan Hyperloop TinyBMS Testing
 * @author Oliver Moore
-* @version 1.3
-* @date 02-17-2022
+* @version 1.4
+* @date 03-02-2022
 ***********************************************/
 
 #include <stdint.h>
@@ -27,7 +27,7 @@ void TIM_Init(void);
 void CAN_Init(uint8_t can_bitrate);
 void CAN_Filter_Config(void);
 void CAN_Begin(void);
-void CAN1_Tx(uint8_t* message);
+void CAN1_Tx(uint8_t device, uint8_t* message, uint8_t len);
 void LED_Manage_Output(uint8_t led_num);
 void Error_Handler(void);
 
@@ -44,6 +44,9 @@ void Error_Handler(void);
 
 #define FALSE 	0
 #define TRUE 	1
+
+#define TINYBMS			0
+#define ELCONCHARGER2	2
 
 /* CAN Speed Macros based on SYSCLK freq */
 #define CANBITRATE_1MBIT_50MHZ			0
