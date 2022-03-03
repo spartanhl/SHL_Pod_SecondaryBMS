@@ -2,8 +2,8 @@
 * @file TinyBMS.h
 * @brief TinyBMS Library Header
 * @author Oliver Moore
-* @version 1.3
-* @date 02-17-2022
+* @version 1.4
+* @date 03-02-2022
 ***********************************************/
 
 #ifndef INC_TINYBMS_H_
@@ -14,13 +14,31 @@
 #include <string.h>
 #include "main.h"
 
-/************ TinyBMS macros ************/
+/************ TinyBMS Macros ************/
 #define ACK										0x01
 #define NACK									0x00
 
 #define CMD_ERROR								0x00
 #define CRC_ERROR								0x01
-/************ TinyBMS UART command macros ************/
+
+/************ TinyBMS CAN Identifier Macros ************/
+
+#define TINYBMS_CAN_NODEID_MIN					0x01
+#define TINYBMS_CAN_NODEID_MAX					0x3F
+
+#define TINYBMS_CAN_REQUEST_BASE_STDID			0x200
+#define TINYBMS_CAN_REQUEST_STDID_MIN			(TINYBMS_CAN_REQUEST_BASE_STDID + TINYBMS_CAN_NODEID_MIN)
+#define TINYBMS_CAN_REQUEST_STDID_MAX			(TINYBMS_CAN_REQUEST_BASE_STDID + TINYBMS_CAN_NODEID_MAX)
+
+#define TINYBMS_CAN_RESPONSE_BASE_STDID			0x240
+#define TINYBMS_CAN_RESPONSE_STDID_MIN			(TINYBMS_CAN_RESPONSE_BASE_STDID + TINYBMS_CAN_NODEID_MIN)
+#define TINYBMS_CAN_RESPONSE_STDID_MAX			(TINYBMS_CAN_RESPONSE_BASE_STDID + TINYBMS_CAN_NODEID_MAX)
+
+#define TINYBMS_DEFAULT_CAN_NODEID				0x01
+#define TINYBMS_CAN_REQUEST_DEFAULT_STDID		(TINYBMS_CAN_REQUEST_BASE_STDID + TINYBMS_DEFAULT_CAN_NODEID)
+#define TINYBMS_CAN_RESPONSE_DEFAULT_STDID		(TINYBMS_CAN_RESPONSE_BASE_STDID + TINYBMS_DEFAULT_CAN_NODEID)
+
+/************ TinyBMS UART Command Macros ************/
 #define UART_TBMS_ACK							0x01
 #define UART_TBMS_READ_REG_BLOCK				0x07
 #define UART_TBMS_READ_INDIVIDUAL_REGS			0x09
@@ -45,7 +63,7 @@
 #define UART_TBMS_READ_VERSION_EXTENDED			0x1F
 #define UART_TBMS_READ_SPEED_DISTANCETIME_LEFT	0x20
 
-/************ TinyBMS CAN command macros ************/
+/************ TinyBMS CAN Command Macros ************/
 #define CAN_TBMS_RESET_CLEAR_EVENTS_STATS		0x02
 #define CAN_TBMS_READ_REG_BLOCK					0x03
 #define CAN_TBMS_WRITE_REG_BLOCK				0x10

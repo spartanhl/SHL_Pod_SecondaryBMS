@@ -2,8 +2,8 @@
 * @file main.c
 * @brief Spartan Hyperloop TinyBMS Testing
 * @author Oliver Moore
-* @version 1.3
-* @date 02-17-2022
+* @version 1.4
+* @date 03-02-2022
 ***********************************************/
 #include "main.h"
 
@@ -12,6 +12,9 @@ UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 TIM_HandleTypeDef htim6;
 CAN_RxHeaderTypeDef RxHeader;
+
+extern uint32_t TinybmsStdID_Request;
+extern uint32_t TinybmsStdID_Response;
 
 uint8_t led_num = 0;
 uint8_t bms_opmode = 0;
@@ -37,7 +40,7 @@ int main(void) {
 
 
   	while(1) {
-
+  		//Todo:
 		switch(bms_opmode) {
 		case MONITOR_CHARGING:
 			TinyBMS_MonitorCharging();
@@ -81,7 +84,7 @@ void UART_Test_API(void) {
 	//while(TinyBMS_UART_ReadOnlineStatus(&huart2) != CMD_SUCCESS) {}
 	//while(TinyBMS_UART_ReadLifetimeCounter(&huart2) != CMD_SUCCESS) {}
 	//while(TinyBMS_UART_ReadEstimatedSOCValue(&huart2) != CMD_SUCCESS) {}
-	while(TinyBMS_UART_ReadDeviceTemperatures(&huart2) != CMD_SUCCESS) {}
+	//while(TinyBMS_UART_ReadDeviceTemperatures(&huart2) != CMD_SUCCESS) {}
 	//while(TinyBMS_UART_ReadBatteryPackCellVoltages(&huart2) != CMD_SUCCESS) {}
 	//while(TinyBMS_UART_ReadSettingsValues(&huart2, option, rl) != CMD_SUCCESS) {}
 	//while(TinyBMS_UART_ReadVersion(&huart2) != CMD_SUCCESS) {}
@@ -123,11 +126,11 @@ void CAN_Test_API(void) {
 }
 
 void TinyBMS_MonitorCharging(void) {
-
+	//Todo:
 }
 
 void TinyBMS_MonitorOperation(void) {
-
+	//Todo:
 }
 
 void SystemClock_Config_HSE(uint8_t clock_freq) {
@@ -350,11 +353,16 @@ void CAN_Init(uint8_t can_bitrate) {
 
 void CAN_Filter_Config(void) {
 	/*
-	 * 	TinyBMS Default Node ID: 0x01
-	 * 	CAN2.0A (11-bit CAN Identifier only)
-	 *  Request   ID: 01000(Node ID Default=0x01..0x3F) = 01000 000001 = 01 0000 0001 = 0x101
-	 *  Response  ID: 01001(Node ID Default=0x01..0x3F) = 01001 000001 = 01 0100 0001 = 0x141
+	 *  __TinyBMS Related Info:__
+	 *  CAN2.0A (11-bit CAN Identifier only)
+	 * 	TinyBMS Default Node ID: 0x01 -> StdID: 0x201	     |-CAN StdID-|
+	 * 														      |NodeID|
+	 *  Request   StdID: 01000(Node ID Default=0x01..0x3F) = 01000 000001 = 010 0000 0001 = 0x201
+	 *  Response  StdID: 01001(Node ID Default=0x01..0x3F) = 01001 000001 = 010 0100 0001 = 0x241
+	 *	Request  ID Range: 0x201-0x23F
+	 *	Response ID Range: 0x241-0x27F
 	 *
+	 *	__ElCon Charger Related Info:__
 	 *  ElCon Secondary Pack Charger Node ID: 0x1806E5F4
 	 *
 	 *
@@ -419,15 +427,33 @@ void CAN_Begin(void) {
 	}
 }
 
-void CAN1_Tx(uint8_t* message) {
+void CAN1_Tx(uint8_t device, uint8_t* message, uint8_t len) {
 	CAN_TxHeaderTypeDef TxHeader;
 	uint32_t TxMailbox;
 
-	TxHeader.DLC = 8;				//Data Length Code (in Bytes)
-	TxHeader.StdId = 0x101;			//Standard ID
-	TxHeader.IDE = CAN_ID_STD; 		//Standard or Extended ID type
-	TxHeader.RTR = CAN_RTR_DATA;	//Remote Transmission Request
-	if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, message, &TxMailbox) != HAL_OK) {
+	if(device == TINYBMS) {
+		TxHeader.DLC = len;				//Data Length Code (in Bytes)
+		if(message[0] == CAN_TBMS_WRITE_CAN_NODEID) 	//Standard ID (Write new nodeID.. Request StdID: 0x200 + user_input)
+			TxHeader.StdId = (TINYBMS_CAN_REQUEST_BASE_STDID + message[1]);
+		else if(message[0] == CAN_TBMS_READ_CAN_NODEID) //Standard ID (Read current nodeID.. Request StdID: 0x200)
+			TxHeader.StdId = TINYBMS_CAN_REQUEST_BASE_STDID;
+		else 											//Standard ID (Otherwise.. Request StdID: 0x201-0x23F)
+			TxHeader.StdId = TinybmsStdID_Request;
+		TxHeader.IDE = CAN_ID_STD; 		//Standard or Extended ID type
+		TxHeader.RTR = CAN_RTR_DATA;	//Remote Transmission Request
+		if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, message, &TxMailbox) != HAL_OK) {
+			Error_Handler();
+		}
+	} else if(device == ELCONCHARGER2) {
+		//Todo:
+		TxHeader.DLC = 8;				//Data Length Code (in Bytes)
+		TxHeader.ExtId = 0x1806E5F4;	//Extended ID
+		TxHeader.IDE = CAN_ID_EXT; 		//Standard or Extended ID type
+		TxHeader.RTR = CAN_RTR_DATA;	//Remote Transmission Request
+		if(HAL_CAN_AddTxMessage(&hcan1, &TxHeader, message, &TxMailbox) != HAL_OK) {
+			Error_Handler();
+		}
+	} else {
 		Error_Handler();
 	}
 }

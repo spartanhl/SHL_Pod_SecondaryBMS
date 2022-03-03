@@ -2,8 +2,8 @@
 * @file msp.c
 * @brief MSP Init and Deinit
 * @author Oliver Moore
-* @version 1.3
-* @date 02-17-2022
+* @version 1.4
+* @date 03-02-2022
 ***********************************************/
 
 #include "main.h"

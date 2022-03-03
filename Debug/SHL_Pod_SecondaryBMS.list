@@ -27,23 +27,23 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000030  00000000  00000000  000201dc  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00014b9c  00000000  00000000  0002020c  2**0
+ 12 .debug_info   00014bd4  00000000  00000000  0002020c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00002381  00000000  00000000  00034da8  2**0
+ 13 .debug_abbrev 00002392  00000000  00000000  00034de0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00000f30  00000000  00000000  00037130  2**3
+ 14 .debug_aranges 00000f30  00000000  00000000  00037178  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_ranges 00000e68  00000000  00000000  00038060  2**3
+ 15 .debug_ranges 00000e68  00000000  00000000  000380a8  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  00002df9  00000000  00000000  00038ec8  2**0
+ 16 .debug_macro  00002df9  00000000  00000000  00038f10  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   000111fa  00000000  00000000  0003bcc1  2**0
+ 17 .debug_line   00011225  00000000  00000000  0003bd09  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000f6673  00000000  00000000  0004cebb  2**0
+ 18 .debug_str    000f6988  00000000  00000000  0004cf2e  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000053  00000000  00000000  0014352e  2**0
+ 19 .comment      00000053  00000000  00000000  001438b6  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  00005244  00000000  00000000  00143584  2**2
+ 20 .debug_frame  00005248  00000000  00000000  0014390c  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -1411,7 +1411,7 @@ void EXTI15_10_IRQHandler(void) {
  8000fc8:	2000028c 	.word	0x2000028c
 
 08000fcc <main>:
-CAN_RxHeaderTypeDef RxHeader;
+extern uint32_t TinybmsStdID_Response;
 
 uint8_t led_num = 0;
 uint8_t bms_opmode = 0;
@@ -1447,7 +1447,7 @@ int main(void) {
 
 
   	while(1) {
-
+  		//Todo:
 		switch(bms_opmode) {
  8000ff4:	4b07      	ldr	r3, [pc, #28]	; (8001014 <main+0x48>)
  8000ff6:	781b      	ldrb	r3, [r3, #0]
@@ -1484,7 +1484,7 @@ int main(void) {
 void TinyBMS_MonitorCharging(void) {
  8001018:	b480      	push	{r7}
  800101a:	af00      	add	r7, sp, #0
-
+	//Todo:
 }
  800101c:	bf00      	nop
  800101e:	46bd      	mov	sp, r7
@@ -1496,7 +1496,7 @@ void TinyBMS_MonitorCharging(void) {
 void TinyBMS_MonitorOperation(void) {
  8001026:	b480      	push	{r7}
  8001028:	af00      	add	r7, sp, #0
-
+	//Todo:
 }
  800102a:	bf00      	nop
  800102c:	46bd      	mov	sp, r7
@@ -2454,7 +2454,7 @@ void Error_Handler(void) {
 	...
 
 08001644 <HAL_MspInit>:
-* @date 02-17-2022
+* @date 03-02-2022
 ***********************************************/
 
 #include "main.h"
