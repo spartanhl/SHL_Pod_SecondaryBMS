@@ -19,12 +19,16 @@ extern uint32_t TinybmsStdID_Response;
 uint8_t led_num = 0;
 uint8_t bms_opmode = 0;
 
+uint16_t maxCellVoltage = 0, minCellVoltage = 0;
+uint32_t initialSOC = 0;
+float initialPackVoltage = 0, initialPackCurrent = 0;
+
 int main(void) {
 	/* Resets all peripherals, initializes the flash interface and Systick. */
 	HAL_Init();
 
 	/* Configure SYSCLK to 50MHZ */
-	SystemClock_Config_HSE(SYS_CLOCK_FREQ_50MHZ);
+	SystemClock_Config_HSI(SYS_CLOCK_FREQ_50MHZ);
 
 	/* Initialize all configured peripherals */
 	GPIO_Init();
@@ -38,15 +42,35 @@ int main(void) {
 	//UART_Test_API();
 	//CAN_Test_API();
 
-
+	/* Application State Machine */
+	//Todo:
   	while(1) {
-  		//Todo:
 		switch(bms_opmode) {
 		case MONITOR_CHARGING:
+			//TinyBMS Init
+			if(TinyBMS_Init() != CMD_SUCCESS) {
+				printf("TinyBMS Init failed.\n");
+				Error_Handler();
+			}
+
+			//Start the Timer (Interrupt mode - Non-Blocking)
+			//Timer is used to send a message to the charger every 1 second
+			HAL_TIM_Base_Start_IT(&htim6);
+
+			//Begin and Monitor Charging
 			TinyBMS_MonitorCharging();
+
+			//Stop the Timer
+			HAL_TIM_Base_Stop_IT(&htim6);
 			break;
 
 		case MONITOR_OPERATION:
+			//TinyBMS Init
+			if(TinyBMS_Init() != CMD_SUCCESS) {
+				printf("TinyBMS Init failed.\n");
+				Error_Handler();
+			}
+
 			TinyBMS_MonitorOperation();
 			break;
 
@@ -126,23 +150,138 @@ void CAN_Test_API(void) {
 }
 
 void TinyBMS_MonitorCharging(void) {
+
 	//Todo:
+	//Mostly Placeholder - Modify API to return their respective data
+	uint16_t cellv[7] = {};
+	uint16_t numDetectedCells = 0;
+
+	while(TinyBMS_CAN_ReadOnlineStatus(&hcan1) == TINYBMS_STATUS_CHARGING) {
+
+		//Verify that all cells are being detected
+		numDetectedCells = TinyBMS_CAN_ReadRegBlock(&hcan1, 1, NUMBER_OF_DETECTED_CELLS);
+		if(numDetectedCells != NUMCELLS_SECONDARY) {
+			printf("Some cells are not being detected!\n");
+		}
+
+		//Get voltage of all cells and compare with max/min voltage thresholds
+		TinyBMS_CAN_ReadBatteryPackCellVoltages(&hcan1);
+		for(uint8_t i = 0; i < NUMCELLS_SECONDARY; i++) {
+			if(cellv[i] < minCellVoltage)  {
+				printf("Cell %u is below the minimum voltage threshold!\n", i+1);
+			}
+			if(cellv[i] > maxCellVoltage) {
+				printf("Cell %u is above the maximum voltage threshold!\n", i+1);
+			}
+		}
+
+		//Check if cells need balancing or are in progress of balancing
+		//Regs 51 & 52: BALANCING_DECISION_BITS & REAL_BALANCING_BITS
+		TinyBMS_CAN_ReadRegBlock(&hcan1, 2, BALANCING_DECISION_BITS);
+
+		//Check Newest Events
+		TinyBMS_CAN_ReadNewestEvents(&hcan1);
+
+		//Check Online Status
+		TinyBMS_CAN_ReadOnlineStatus(&hcan1);
+
+		//Check Temperatures
+		TinyBMS_CAN_ReadDeviceTemperatures(&hcan1);
+
+		//Get State of Charge
+		TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1);
+
+		//Get Pack Voltage
+		TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1);
+
+		//Get Pack Current
+		TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1);
+	}
 }
 
 void TinyBMS_MonitorOperation(void) {
 	//Todo:
+	//Similar to MonitorCharging
 }
 
-void SystemClock_Config_HSE(uint8_t clock_freq) {
+void ElCon_SendMsg(void) {
+	//Triggered from HAL_TIM_PeriodElapsedCallback()
+	//Every 1 second, send 8-bytes of data with voltage and current requested to ExtID 0x1806E5F4
+	//Todo:
+	uint8_t msg[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	uint8_t len = 8;
+	CAN1_Tx(ELCONCHARGER2, msg, len);
+}
+
+uint8_t TinyBMS_Init(void) {
+	uint8_t retval = CMD_FAILURE;
+	//Todo:
+	//Mostly Placeholder - Modify API to return their respective data
+
+	//Read CAN NodeID and update to it if required
+	TinyBMS_CAN_ReadNodeID(&hcan1);
+
+	//Reset BMS
+	TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_RESET_BMS);
+
+	//Clear Events & Statistics
+	TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_CLEAR_EVENTS);
+	TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_CLEAR_STATS);
+
+	//Confirm BMS Reset by reading Lifetime Counter
+	TinyBMS_CAN_ReadLifetimeCounter(&hcan1);
+
+	//Read Version
+	TinyBMS_CAN_ReadVersion(&hcan1);
+
+	//Get Min/Max Cell Voltage Thresholds
+	minCellVoltage = TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1);
+	maxCellVoltage = TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1);
+
+	//Check for any active events
+	TinyBMS_CAN_ReadAllEvents(&hcan1);
+
+	//Verify Pack Voltage and Current
+	initialPackVoltage = TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1);
+	initialPackCurrent = TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1);
+
+	//Get initial State of Charge
+	initialSOC = TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1);
+
+	//Check Temperatures
+	TinyBMS_CAN_ReadDeviceTemperatures(&hcan1);
+
+	//Verify Online Status is TINYBMS_STATUS_IDLE
+	if(TinyBMS_CAN_ReadOnlineStatus(&hcan1) == TINYBMS_STATUS_IDLE) {
+		//do nothing
+	} else if(TinyBMS_CAN_ReadOnlineStatus(&hcan1) == TINYBMS_STATUS_FAULT) {
+		//Check for any active events
+		TinyBMS_CAN_ReadAllEvents(&hcan1);
+		retval = CMD_FAILURE;
+		return retval;
+	} else {
+		Error_Handler();
+	}
+
+	//Settings Registers: 300-301, 303-304, 306-308, 312-320, 328, 330-343
+	//					  (30 total settings) (344-399 reserved)
+	// rl max is 100 (0x64) registers, but this exceeds the actual total
+	TinyBMS_CAN_ReadSettingsValues(&hcan1, TINYBMS_SETTINGS_CURRENT, 30);
+
+	retval = CMD_SUCCESS;
+	return retval;
+}
+
+void SystemClock_Config_HSI(uint8_t clock_freq) {
 	RCC_OscInitTypeDef osc_init = {0};
 	RCC_ClkInitTypeDef clk_init = {0};
 	uint8_t flash_latency = 0;
 
-	//Using HSE to derive PLL
-	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-	osc_init.HSEState = RCC_HSE_ON;
+	//Using HSI to derive PLL
+	osc_init.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	osc_init.HSIState = RCC_HSI_ON;
 	osc_init.PLL.PLLState = RCC_PLL_ON;
-	osc_init.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+	osc_init.PLL.PLLSource = RCC_PLLSOURCE_HSI;
 
 	switch(clock_freq) {
 	case SYS_CLOCK_FREQ_50MHZ: {
@@ -273,6 +412,7 @@ void UART_Init(void) {
 
 void TIM_Init(void) {
 	//TIM6 - Basic Timer
+	//Every 1 Second or 1Hz freq
 	htim6.Instance = TIM6;
 	htim6.Init.Prescaler = 4999;
 	htim6.Init.Period = 10000-1;
@@ -566,6 +706,14 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 		printf("HAL_CAN_ErrorCallback CAN1\r\n");
 		sprintf(msg, "CAN Error Detected\r\n");
 		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+	}
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+
+	if(htim->Instance == TIM6) {
+		//Every 1 second during Charging, send message to ElCon charger
+		ElCon_SendMsg();
 	}
 }
 

@@ -6,6 +6,7 @@
 * @date 03-02-2022
 ***********************************************/
 
+//Todo: Modify return values for CAN to return data instead of success/error
 /*
  * UART API Testing:
  *
@@ -1924,22 +1925,22 @@ uint8_t TinyBMS_UART_ReadOnlineStatus(UART_HandleTypeDef *huart) {
 
 				printf("************ TinyBMS Online Status: ************\n");
 				switch(onlineStatus) {
-					case TBMS_STATUS_CHARGING:
+					case TINYBMS_STATUS_CHARGING:
 						printf("0x91 - Charging [INFO]\n");
 						break;
-					case TBMS_STATUS_FULLYCHARGED:
+					case TINYBMS_STATUS_FULLYCHARGED:
 						printf("0x92 - Fully Charged [INFO]\n");
 						break;
-					case TBMS_STATUS_DISCHARGING:
+					case TINYBMS_STATUS_DISCHARGING:
 						printf("0x93 - Discharging [INFO]\n");
 						break;
-					case TBMS_STATUS_REGENERATION:
+					case TINYBMS_STATUS_REGENERATION:
 						printf("0x96 - Regeneration [INFO]\n");
 						break;
-					case TBMS_STATUS_IDLE:
+					case TINYBMS_STATUS_IDLE:
 						printf("0x97 - Idle [INFO]\n");
 						break;
-					case TBMS_STATUS_FAULT:
+					case TINYBMS_STATUS_FAULT:
 						printf("0x9B - Fault [ERROR]\n");
 						break;
 					default:
@@ -3076,13 +3077,13 @@ uint8_t TinyBMS_CAN_ResetClearEventsStatistics(CAN_HandleTypeDef *hcan, uint8_t 
 
 	/* Request to BMS */
 	switch(option) {
-	case 0x01:
+	case TINYBMS_CLEAR_EVENTS:
 		printf("0x01 Clear Events\n");
 		break;
-	case 0x02:
+	case TINYBMS_CLEAR_STATS:
 		printf("0x02 Clear Statistics\n");
 		break;
-	case 0x05:
+	case TINYBMS_RESET_BMS:
 		printf("0x05 Reset BMS\n");
 		break;
 	default:
@@ -3828,22 +3829,22 @@ uint8_t TinyBMS_CAN_ReadOnlineStatus(CAN_HandleTypeDef *hcan) {
 				uint16_t onlineStatus = ((rx_msg[3] << 8) | (rx_msg[2]));
 
 				switch(onlineStatus) {
-				case TBMS_STATUS_CHARGING:
+				case TINYBMS_STATUS_CHARGING:
 					printf("TinyBMS Online Status: 0x%02X - Charging [INFO]\n", onlineStatus);
 					break;
-				case TBMS_STATUS_FULLYCHARGED:
+				case TINYBMS_STATUS_FULLYCHARGED:
 					printf("TinyBMS Online Status: 0x%02X - Fully Charged [INFO]\n", onlineStatus);
 					break;
-				case TBMS_STATUS_DISCHARGING:
+				case TINYBMS_STATUS_DISCHARGING:
 					printf("TinyBMS Online Status: 0x%02X - Discharging [INFO]\n", onlineStatus);
 					break;
-				case TBMS_STATUS_REGENERATION:
+				case TINYBMS_STATUS_REGENERATION:
 					printf("TinyBMS Online Status: 0x%02X - Regeneration [INFO]\n", onlineStatus);
 					break;
-				case TBMS_STATUS_IDLE:
+				case TINYBMS_STATUS_IDLE:
 					printf("TinyBMS Online Status: 0x%02X - Idle [INFO]\n", onlineStatus);
 					break;
-				case TBMS_STATUS_FAULT:
+				case TINYBMS_STATUS_FAULT:
 					printf("TinyBMS Online Status: 0x%02X - Fault [Error]\n", onlineStatus);
 					break;
 				default:
