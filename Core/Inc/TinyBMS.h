@@ -84,13 +84,23 @@
 #define CAN_TBMS_READ_CAN_NODEID				0x28
 #define CAN_TBMS_WRITE_CAN_NODEID				0x29
 
+/************ TinyBMS Reset/Clear Macros ************/
+#define TINYBMS_CLEAR_EVENTS					0x01
+#define TINYBMS_CLEAR_STATS						0x02
+#define TINYBMS_RESET_BMS						0x05
 /************ TinyBMS Online Status Macros ************/
-#define TBMS_STATUS_CHARGING					0x91
-#define TBMS_STATUS_FULLYCHARGED				0x92
-#define TBMS_STATUS_DISCHARGING					0x93
-#define TBMS_STATUS_REGENERATION				0x96
-#define TBMS_STATUS_IDLE						0x97
-#define TBMS_STATUS_FAULT						0x9B
+#define TINYBMS_STATUS_CHARGING					0x91
+#define TINYBMS_STATUS_FULLYCHARGED				0x92
+#define TINYBMS_STATUS_DISCHARGING				0x93
+#define TINYBMS_STATUS_REGENERATION				0x96
+#define TINYBMS_STATUS_IDLE						0x97
+#define TINYBMS_STATUS_FAULT					0x9B
+/************ TinyBMS Settings Values Macros ************/
+#define TINYBMS_SETTINGS_MIN					0x01
+#define TINYBMS_SETTINGS_MAX					0x02
+#define TINYBMS_SETTINGS_DEFAULT				0x03
+#define TINYBMS_SETTINGS_CURRENT				0x04
+
 
 /**************************** Register Addresses ****************************/
 

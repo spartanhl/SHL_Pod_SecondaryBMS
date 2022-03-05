@@ -20,7 +20,9 @@ void UART_Test_API(void);
 void CAN_Test_API(void);
 void TinyBMS_MonitorCharging(void);
 void TinyBMS_MonitorOperation(void);
-void SystemClock_Config_HSE(uint8_t clock_freq);
+uint8_t TinyBMS_Init(void);
+void ElCon_SendMsg(void);
+void SystemClock_Config_HSI(uint8_t clock_freq);
 void GPIO_Init(void);
 void UART_Init(void);
 void TIM_Init(void);
@@ -32,8 +34,8 @@ void LED_Manage_Output(uint8_t led_num);
 void Error_Handler(void);
 
 /*************** Macros ***************/
-#define CMD_SUCCESS	0xAA
-#define CMD_FAILURE	0xFF
+#define CMD_SUCCESS				0xAA
+#define CMD_FAILURE				0xFF
 
 #define MONITOR_CHARGING		2
 #define MONITOR_OPERATION		3
@@ -42,11 +44,13 @@ void Error_Handler(void);
 #define SYS_CLOCK_FREQ_84MHZ 	84
 #define SYS_CLOCK_FREQ_120MHZ 	120
 
-#define FALSE 	0
-#define TRUE 	1
+#define FALSE 					0
+#define TRUE 					1
 
-#define TINYBMS			0
-#define ELCONCHARGER2	2
+#define TINYBMS					0
+#define ELCONCHARGER2			2
+
+#define NUMCELLS_SECONDARY 		7 	//Secondary Pack has 7 Cells in Series
 
 /* CAN Speed Macros based on SYSCLK freq */
 #define CANBITRATE_1MBIT_50MHZ			0
