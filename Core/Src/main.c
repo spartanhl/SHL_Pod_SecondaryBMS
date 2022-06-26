@@ -16,6 +16,7 @@ CAN_RxHeaderTypeDef RxHeader;
 extern uint32_t TinybmsStdID_Request;
 extern uint32_t TinybmsStdID_Response;
 
+/******* Globals *******/
 uint8_t led_num = 0;
 uint8_t bms_opmode = 0;
 
@@ -36,7 +37,6 @@ int main(void) {
 	TIM_Init();
 	CAN_Init(CANBITRATE_500KBIT_50MHZ);
 	CAN_Filter_Config();
-
 	CAN_Begin();
 
 	//UART_Test_API();

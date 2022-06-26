@@ -34,9 +34,6 @@ void LED_Manage_Output(uint8_t led_num);
 void Error_Handler(void);
 
 /*************** Macros ***************/
-#define CMD_SUCCESS				0xAA
-#define CMD_FAILURE				0xFF
-
 #define MONITOR_CHARGING		2
 #define MONITOR_OPERATION		3
 
@@ -104,4 +101,3 @@ void Error_Handler(void);
 #define CAN1_RX_PIN	GPIO_PIN_0
 #define CAN1_TX_PIN	GPIO_PIN_1
 #define CAN1_GPIO_Port GPIOD
-
