@@ -74,3 +74,45 @@ The secondary battery pack is 7 of these 'super-cells' connected in series.
 	- 2.1.17 		TinyBMS_CAN_ReadCalcSpeedDistanceLeftEstTimeLeft
 	- 2.1.18 		TinyBMS_CAN_ReadNodeID
 	- 2.1.19 		TinyBMS_CAN_WriteNodeID 
+
+## Directory Contents
+```
+**SHL_Pod_SecondaryBMS**
+|
+└───Includes 
+└───Core 
+|   └───Inc 
+|   |   | - it.h
+|   |   | - main.h
+|   |   | - stm32f7xx_hal_conf.h
+|   |   | - TinyBMS.h
+|   |
+|   └───Src
+|   |   | - it.c
+|   |   | - main.c
+|   |   | - msp.c
+|   |   | - syscalls.c
+|   |   | - sysmem.c
+|   |   | - system_stm32f7xx.c
+|   |   | - TinyBMS.c
+|   |
+|   └───Startup
+|       | - startup_stm32f746zgtx.s
+|
+└───Drivers
+|   └───CMSIS
+|   |	└───Device
+|   |	|   └───ST
+|   |	|       └───STM32F7xx
+|   |	|           └───Include
+|   |	└───Include
+|   └───STM32F7xx_HAL_Driver
+|   	└───Inc
+|   	└───Src
+|
+└───Debug 
+└───Reference Docs
+    └───ARM & STM32 Docs
+    └───Screenshots
+    └───Traces
+```
