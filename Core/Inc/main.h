@@ -2,8 +2,8 @@
 * @file main.h
 * @brief Spartan Hyperloop TinyBMS Testing
 * @author Oliver Moore
-* @version 1.4
-* @date 03-02-2022
+* @version 1.5
+* @date 08-21-2022
 ***********************************************/
 
 #include <stdint.h>
@@ -19,7 +19,7 @@
 void UART_Test_API(void);
 void CAN_Test_API(void);
 void TinyBMS_MonitorCharging(void);
-void TinyBMS_MonitorOperation(void);
+void TinyBMS_MonitorDischarging(void);
 uint8_t TinyBMS_Init(void);
 void ElCon_SendMsg(void);
 void SystemClock_Config_HSI(uint8_t clock_freq);
@@ -34,15 +34,20 @@ void LED_Manage_Output(uint8_t led_num);
 void Error_Handler(void);
 
 /*************** Macros ***************/
-#define MONITOR_CHARGING		2
-#define MONITOR_OPERATION		3
-
 #define SYS_CLOCK_FREQ_50MHZ 	50
 #define SYS_CLOCK_FREQ_84MHZ 	84
 #define SYS_CLOCK_FREQ_120MHZ 	120
 
 #define FALSE 					0
 #define TRUE 					1
+
+#define NO						0
+#define YES						1
+
+#define NEITHER					0
+#define ONLYEVENTS				1
+#define ONLYSTATS				2
+#define BOTH					3
 
 #define TINYBMS					0
 #define ELCONCHARGER2			2
