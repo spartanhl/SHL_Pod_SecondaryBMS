@@ -2,8 +2,8 @@
 * @file main.h
 * @brief Spartan Hyperloop TinyBMS Testing
 * @author Oliver Moore
-* @version 1.5
-* @date 08-21-2022
+* @version 1.6
+* @date 09-13-2022
 ***********************************************/
 
 #include <stdint.h>
@@ -15,12 +15,22 @@
 #include "stm32f7xx_hal.h"
 #include "TinyBMS.h"
 
+/***************** External Variables ******************/
+extern UART_HandleTypeDef huart2;
+extern CAN_HandleTypeDef hcan1;
+extern uint32_t TinybmsStdID_Request;
+extern uint32_t TinybmsStdID_Response;
+extern uint8_t rx_buffer[500];
+
 /*************** Function Prototypes ***************/
 void UART_Test_API(void);
 void CAN_Test_API(void);
-void TinyBMS_MonitorCharging(void);
-void TinyBMS_MonitorDischarging(void);
-uint8_t TinyBMS_Init(void);
+void TinyBMS_MonitorCharging_UART(void);
+void TinyBMS_MonitorDischarging_UART(void);
+void TinyBMS_MonitorCharging_CAN(void);
+void TinyBMS_MonitorDischarging_CAN(void);
+uint8_t TinyBMS_Init_UART(void);
+uint8_t TinyBMS_Init_CAN(void);
 void ElCon_SendMsg(void);
 void SystemClock_Config_HSI(uint8_t clock_freq);
 void GPIO_Init(void);
@@ -52,13 +62,22 @@ void Error_Handler(void);
 #define TINYBMS					0
 #define ELCONCHARGER2			2
 
-#define NUMCELLS_SECONDARY 		7 	//Secondary Pack has 7 Cells in Series
+#define MENU_UART_API_TEST				1
+#define MENU_CAN_API_TEST				2
+#define MENU_MONITOR_CHARGE_UART		3
+#define MENU_MONITOR_DISCHARGE_UART		4
+#define MENU_MONITOR_CHARGE_CAN			5
+#define MENU_MONITOR_DISCHARGE_CAN		6
+#define MENU_QUIT						7
 
 /* CAN Speed Macros based on SYSCLK freq */
 #define CANBITRATE_1MBIT_50MHZ			0
 #define CANBITRATE_500KBIT_50MHZ 		1
 #define CANBITRATE_250KBIT_50MHZ 		2
 #define CANBITRATE_125KBIT_50MHZ 		3
+
+/* Secondary Battery Pack Macros */
+#define NUMCELLS_SECONDARY 				7 		//Secondary Pack has 7 Cells in Series
 
 
 /************  GPIO Macros ************/

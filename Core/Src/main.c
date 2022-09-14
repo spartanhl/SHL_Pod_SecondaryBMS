@@ -2,8 +2,8 @@
 * @file main.c
 * @brief Spartan Hyperloop TinyBMS Testing
 * @author Oliver Moore
-* @version 1.5
-* @date 08-21-2022
+* @version 1.6
+* @date 09-13-2022
 ***********************************************/
 #include "main.h"
 
@@ -13,14 +13,13 @@ UART_HandleTypeDef huart3;
 TIM_HandleTypeDef htim6;
 CAN_RxHeaderTypeDef RxHeader;
 
-extern uint32_t TinybmsStdID_Request;
-extern uint32_t TinybmsStdID_Response;
-
 /******* Globals *******/
-uint8_t led_num = 0;
-uint16_t minCellVoltage = 0, maxCellVoltage = 0;
-float packVoltage = 0, packCurrent = 0;
-uint32_t initialSOC = 0;
+uint8_t rx_buffer[500];
+
+/****************** TinyBMS CAN Identifiers ******************/
+//Initialize TinyBMS Request/Response StdId's to Default
+uint32_t TinybmsStdID_Request = TINYBMS_CAN_REQUEST_DEFAULT_STDID;
+uint32_t TinybmsStdID_Response = TINYBMS_CAN_RESPONSE_DEFAULT_STDID;
 
 int main(void) {
 	uint8_t app_done = 0;
@@ -44,57 +43,61 @@ int main(void) {
 	printf("Secondary Battery Pack BMS\r\n");
 
     printf("Menu\r\n");
-    printf("U: UART API Test\r\n");
-    printf("N: CAN API Test\r\n");
-    printf("C: Monitor Charging\r\n");
-    printf("D: Monitor Discharging\r\n");
-    printf("Q: Quit\r\n");
+    printf("1: UART API Test\r\n");
+    printf("2: CAN API Test\r\n");
+    printf("3: Monitor Charging (UART)\r\n");
+    printf("4: Monitor Discharging (UART)\r\n");
+    printf("5: Monitor Charging (CAN)\r\n");
+    printf("6: Monitor Discharging (CAN)\r\n");
+    printf("7: Quit\r\n");
 
 	//Application Menu
 	while(!app_done) {
-		char userInput = 0;
-		scanf("%c", &userInput);
+		int userInput = 0;
+		scanf("%d", &userInput);
 
 		switch(userInput) {
 		//UART API Test
-		case 'u':
-		case 'U':
+		case MENU_UART_API_TEST:
 			printf("UART API Test..\r\n");
 			UART_Test_API();
 			app_done = 1;
 			break;
-
 		//CAN API Test
-		case 'n':
-		case 'N':
+		case MENU_CAN_API_TEST:
 			printf("CAN API Test..\r\n");
 			CAN_Test_API();
 			app_done = 1;
 			break;
-
-		//Monitor Charging
-		case 'c':
-		case 'C':
-			printf("Monitor Charging..\r\n");
-			TinyBMS_MonitorCharging();
+		//Monitor Charging (UART)
+		case MENU_MONITOR_CHARGE_UART:
+			printf("Monitor Charging (UART)..\r\n");
+			TinyBMS_MonitorCharging_UART();
 			app_done = 1;
 			break;
-
-		//Monitor Discharging
-		case 'd':
-		case 'D':
-			printf("Monitor Discharging..\r\n");
-			TinyBMS_MonitorDischarging();
+		//Monitor Discharging (UART)
+		case MENU_MONITOR_DISCHARGE_UART:
+			printf("Monitor Discharging (UART)..\r\n");
+			TinyBMS_MonitorDischarging_UART();
 			app_done = 1;
 			break;
-
+		//Monitor Charging (CAN)
+		case MENU_MONITOR_CHARGE_CAN:
+			printf("Monitor Charging (CAN)..\r\n");
+			TinyBMS_MonitorDischarging_CAN();
+			app_done = 1;
+			break;
+		//Monitor Discharging (CAN)
+		case MENU_MONITOR_DISCHARGE_CAN:
+			printf("Monitor Discharging (CAN)..\r\n");
+			TinyBMS_MonitorDischarging_CAN();
+			app_done = 1;
+			break;
 		//Quit
-		case 'q':
-		case 'Q':
+		case MENU_QUIT:
 			printf("Exiting..\r\n");
 			app_done = 1;
 			break;
-
 		//Invalid
 		default:
 			printf("Invalid input.\r\n");
@@ -111,7 +114,7 @@ void UART_Test_API(void) {
 	uint8_t rl = 0, pl = 0;
 	uint16_t addr = 0x00;
 
-	/*** Toggle comments to test specific TinyBMS API -- Hangs in while loop unless success ***/
+	/*** Hangs in while loop unless success ***/
 	//1.1.1 ACK
 	while(TinyBMS_UART_ACK(&huart2) != CMD_SUCCESS) {}
 
@@ -171,25 +174,32 @@ void UART_Test_API(void) {
 	while(TinyBMS_UART_ReadAllEvents(&huart2) != CMD_SUCCESS) {}
 
 	//1.1.11 ReadBatteryPackVoltage
-	while(TinyBMS_UART_ReadBatteryPackVoltage(&huart2) != CMD_SUCCESS) {}
+	float packVoltage = TinyBMS_UART_ReadBatteryPackVoltage(&huart2);
+	printf("Secondary Battery Pack Voltage: %f (V)\r\n", packVoltage);
 
 	//1.1.12 ReadBatteryPackCurrent
-	while(TinyBMS_UART_ReadBatteryPackCurrent(&huart2) != CMD_SUCCESS) {}
+	float packCurrent = TinyBMS_UART_ReadBatteryPackCurrent(&huart2);
+	printf("Secondary Battery Pack Current: %f (A)\r\n", packCurrent);
 
 	//1.1.13 ReadBatteryPackMaxCellVoltage
-	while(TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2) != CMD_SUCCESS) {}
+	uint16_t maxCellVoltage = TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2);
+	printf("Secondary Battery Pack Maximum Cell Voltage: %u (mV)\r\n", maxCellVoltage);
 
 	//1.1.14 ReadBatteryPackMinCellVoltage
-	while(TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2) != CMD_SUCCESS) {}
+	uint16_t minCellVoltage = TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2);
+	printf("Secondary Battery Pack Minimum Cell Voltage: %u (mV)\r\n", minCellVoltage);
 
 	//1.1.15 ReadOnlineStatus
-	while(TinyBMS_UART_ReadOnlineStatus(&huart2) != CMD_SUCCESS) {}
+	uint16_t onlineStatus = TinyBMS_UART_ReadOnlineStatus(&huart2);
+	printf("TinyBMS Online Status: %u\r\n", onlineStatus);
 
 	//1.1.16 ReadLifetimeCounter
-	while(TinyBMS_UART_ReadLifetimeCounter(&huart2) != CMD_SUCCESS) {}
+	uint32_t lifetimeCounter = TinyBMS_UART_ReadLifetimeCounter(&huart2);
+	printf("TinyBMS Lifetime Counter: %lu (s)\r\n", lifetimeCounter);
 
 	//1.1.17 ReadEstimatedSOCValue
-	while(TinyBMS_UART_ReadEstimatedSOCValue(&huart2) != CMD_SUCCESS) {}
+	uint32_t estSOC = TinyBMS_UART_ReadEstimatedSOCValue(&huart2);
+	printf("Estimated State of Charge (SOC): %lu (0.000 001 %% resolution)\r\n", estSOC);
 
 	//1.1.18 ReadDeviceTemperatures
 	while(TinyBMS_UART_ReadDeviceTemperatures(&huart2) != CMD_SUCCESS) {}
@@ -223,7 +233,7 @@ void CAN_Test_API(void) {
 	uint8_t rl = 0;
 	uint16_t addr = 0x00;
 
-	/*** Toggle comments to test specific TinyBMS API -- Hangs in while loop unless success ***/
+	/*** Hangs in while loop unless success ***/
 	//2.1.1 ResetClearEventsStatistics
 	option = TINYBMS_CLEAR_EVENTS;
 	while(TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, option) != CMD_SUCCESS) {}
@@ -252,25 +262,32 @@ void CAN_Test_API(void) {
 	while(TinyBMS_CAN_ReadAllEvents(&hcan1) != CMD_SUCCESS) {}
 
 	//2.1.6 ReadBatteryPackVoltage
-	while(TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1) != CMD_SUCCESS) {}
+	float packVoltage = TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1);
+	printf("Secondary Battery Pack Voltage: %f (V)\r\n", packVoltage);
 
 	//2.1.7 ReadBatteryPackCurrent
-	while(TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1) != CMD_SUCCESS) {}
+	float packCurrent = TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1);
+	printf("Secondary Battery Pack Current: %f (A)\r\n", packCurrent);
 
 	//2.1.8 ReadBatteryPackMaxCellVoltage
-	while(TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1) != CMD_SUCCESS) {}
+	uint16_t maxCellVoltage = TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1);
+	printf("Secondary Battery Pack Maximum Cell Voltage: %u (mV)\r\n", maxCellVoltage);
 
 	//2.1.9 ReadBatteryPackMinCellVoltage
-	while(TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1) != CMD_SUCCESS) {}
+	uint16_t minCellVoltage = TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1);
+	printf("Secondary Battery Pack Minimum Cell Voltage: %u (mV)\r\n", minCellVoltage);
 
 	//2.1.10 ReadOnlineStatus
-	while(TinyBMS_CAN_ReadOnlineStatus(&hcan1) != CMD_SUCCESS) {}
+	uint16_t onlineStatus = TinyBMS_CAN_ReadOnlineStatus(&hcan1);
+	printf("TinyBMS Online Status: %u\r\n", onlineStatus);
 
 	//2.1.11 ReadLifetimeCounter
-	while(TinyBMS_CAN_ReadLifetimeCounter(&hcan1) != CMD_SUCCESS) {}
+	uint32_t lifetimeCounter = TinyBMS_CAN_ReadLifetimeCounter(&hcan1);
+	printf("TinyBMS Lifetime Counter: %lu (s)\r\n", lifetimeCounter);
 
 	//2.1.12 ReadEstimatedSOCValue
-	while(TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1) != CMD_SUCCESS) {}
+	uint32_t estSOC = TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1);
+	printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\r\n", estSOC);
 
 	//2.1.13 ReadDeviceTemperatures
 	while(TinyBMS_CAN_ReadDeviceTemperatures(&hcan1) != CMD_SUCCESS) {}
@@ -303,9 +320,82 @@ void CAN_Test_API(void) {
 	while(TinyBMS_CAN_WriteNodeID(&hcan1, nodeID) != CMD_SUCCESS) {}
 }
 
-void TinyBMS_MonitorCharging(void) {
+void TinyBMS_MonitorCharging_UART(void) {
 	//TinyBMS Init
-	if(TinyBMS_Init() != CMD_SUCCESS) {
+	if(TinyBMS_Init_UART() != CMD_SUCCESS) {
+		printf("TinyBMS Init failed.\r\n");
+		Error_Handler();
+	}
+
+	//Start the Timer (Interrupt Mode / Non-Blocking)
+	//Timer is used to send a message to the charger every 1 second
+	//Todo:
+	HAL_TIM_Base_Start_IT(&htim6);
+
+	uint16_t cellv[7] = {};
+	uint16_t minCellVoltage = TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2);
+	uint16_t maxCellVoltage = TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2);
+	uint16_t numDetectedCells = TinyBMS_UART_ReadRegBlock(&huart2, 1, NUMBER_OF_DETECTED_CELLS);
+
+	while(TinyBMS_UART_ReadOnlineStatus(&huart2) == TINYBMS_STATUS_CHARGING) {
+		//Verify that all cells are being detected
+		if(numDetectedCells != NUMCELLS_SECONDARY) {
+			printf("Some cells are not being detected!\r\n");
+		}
+
+		//Get voltage of all cells and compare with max/min voltage thresholds
+		TinyBMS_UART_ReadBatteryPackCellVoltages(&huart2);
+		for(uint8_t i = 0; i < NUMCELLS_SECONDARY; i++) {
+			cellv[i] = TinyBMS_UART_ReadRegBlock(&huart2, 1, CELL1_VOLTAGE+i);
+			if(cellv[i] < minCellVoltage)  {
+				printf("Cell %u is below the minimum voltage threshold!\r\n", i+1);
+			}
+			if(cellv[i] > maxCellVoltage) {
+				printf("Cell %u is above the maximum voltage threshold!\r\n", i+1);
+			}
+		}
+
+		//Check if cells need balancing or are in progress of balancing
+		//Regs 51 & 52: BALANCING_DECISION_BITS & REAL_BALANCING_BITS
+		TinyBMS_UART_ReadRegBlock(&huart2, 2, BALANCING_DECISION_BITS);
+
+		//Check Newest Events
+		TinyBMS_UART_ReadNewestEvents(&huart2);
+
+		//Check Temperatures
+		TinyBMS_UART_ReadDeviceTemperatures(&huart2);
+
+		//Get State of Charge
+		uint32_t estSOC = TinyBMS_UART_ReadEstimatedSOCValue(&huart2);
+		printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\r\n", estSOC);
+
+		//Get Pack Voltage
+		float packVoltage = TinyBMS_UART_ReadBatteryPackVoltage(&huart2);
+		printf("Secondary Battery Pack Voltage: %f (V)\r\n", packVoltage);
+
+		//Get Pack Current
+		float packCurrent = TinyBMS_UART_ReadBatteryPackCurrent(&huart2);
+		printf("Secondary Battery Pack Current: %f (A)\r\n", packCurrent);
+	}
+
+	//Stop the Timer
+	HAL_TIM_Base_Stop_IT(&htim6);
+}
+
+void TinyBMS_MonitorDischarging_UART(void) {
+	//TinyBMS Init
+	if(TinyBMS_Init_UART() != CMD_SUCCESS) {
+		printf("TinyBMS Init failed.\r\n");
+		Error_Handler();
+	}
+
+	//Todo:
+	//Similar to MonitorCharging_UART
+}
+
+void TinyBMS_MonitorCharging_CAN(void) {
+	//TinyBMS Init
+	if(TinyBMS_Init_CAN() != CMD_SUCCESS) {
 		printf("TinyBMS Init failed.\r\n");
 		Error_Handler();
 	}
@@ -314,14 +404,13 @@ void TinyBMS_MonitorCharging(void) {
 	//Timer is used to send a message to the charger every 1 second
 	HAL_TIM_Base_Start_IT(&htim6);
 
-	//Mostly Placeholder - Modify API to return their respective data
 	uint16_t cellv[7] = {};
-	uint16_t numDetectedCells = 0;
+	uint16_t minCellVoltage = TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1);
+	uint16_t maxCellVoltage = TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1);
+	uint16_t numDetectedCells = TinyBMS_CAN_ReadRegBlock(&hcan1, 1, NUMBER_OF_DETECTED_CELLS);
 
 	while(TinyBMS_CAN_ReadOnlineStatus(&hcan1) == TINYBMS_STATUS_CHARGING) {
-
 		//Verify that all cells are being detected
-		numDetectedCells = TinyBMS_CAN_ReadRegBlock(&hcan1, 1, NUMBER_OF_DETECTED_CELLS);
 		if(numDetectedCells != NUMCELLS_SECONDARY) {
 			printf("Some cells are not being detected!\r\n");
 		}
@@ -329,6 +418,7 @@ void TinyBMS_MonitorCharging(void) {
 		//Get voltage of all cells and compare with max/min voltage thresholds
 		TinyBMS_CAN_ReadBatteryPackCellVoltages(&hcan1);
 		for(uint8_t i = 0; i < NUMCELLS_SECONDARY; i++) {
+			cellv[i] = TinyBMS_CAN_ReadRegBlock(&hcan1, 1, CELL1_VOLTAGE+i);
 			if(cellv[i] < minCellVoltage)  {
 				printf("Cell %u is below the minimum voltage threshold!\r\n", i+1);
 			}
@@ -344,35 +434,35 @@ void TinyBMS_MonitorCharging(void) {
 		//Check Newest Events
 		TinyBMS_CAN_ReadNewestEvents(&hcan1);
 
-		//Check Online Status
-		TinyBMS_CAN_ReadOnlineStatus(&hcan1);
-
 		//Check Temperatures
 		TinyBMS_CAN_ReadDeviceTemperatures(&hcan1);
 
 		//Get State of Charge
-		TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1);
+		uint32_t estSOC = TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1);
+		printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\r\n", estSOC);
 
 		//Get Pack Voltage
-		TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1);
+		float packVoltage = TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1);
+		printf("Secondary Battery Pack Voltage: %f (V)\r\n", packVoltage);
 
 		//Get Pack Current
-		TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1);
+		float packCurrent = TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1);
+		printf("Secondary Battery Pack Current: %f (A)\r\n", packCurrent);
 	}
 
 	//Stop the Timer
 	HAL_TIM_Base_Stop_IT(&htim6);
 }
 
-void TinyBMS_MonitorDischarging(void) {
+void TinyBMS_MonitorDischarging_CAN(void) {
 	//TinyBMS Init
-	if(TinyBMS_Init() != CMD_SUCCESS) {
+	if(TinyBMS_Init_CAN() != CMD_SUCCESS) {
 		printf("TinyBMS Init failed.\r\n");
 		Error_Handler();
 	}
 
 	//Todo:
-	//Similar to MonitorCharging
+	//Similar to MonitorCharging_CAN
 }
 
 void ElCon_SendMsg(void) {
@@ -384,7 +474,209 @@ void ElCon_SendMsg(void) {
 	CAN1_Tx(ELCONCHARGER2, msg, len);
 }
 
-uint8_t TinyBMS_Init(void) {
+uint8_t TinyBMS_Init_UART(void) {
+	uint8_t retval = CMD_FAILURE;
+	int validInput = FALSE;
+	int userInput = 0;
+
+	//Reset BMS?
+	while(!validInput) {
+		printf("Reset BMS?\r\n");
+		printf("0: No   1: Yes\r\n");
+		userInput = 0;
+		scanf("%d", &userInput);
+
+		switch(userInput) {
+		case NO:
+			validInput = TRUE;
+			printf("Skipping reset..\r\n");
+			break;
+		case YES:
+			validInput = TRUE;
+			printf("Resetting TinyBMS..\r\n");
+			TinyBMS_UART_ResetClearEventsStatistics(&huart2, TINYBMS_RESET_BMS);
+			break;
+		default:
+			validInput = FALSE;
+			printf("Invalid input.\r\n");
+			break;
+		}
+	}
+
+	//Check if BMS was Reset by reading Lifetime Counter
+	if(TinyBMS_UART_ReadLifetimeCounter(&huart2) < 5) {
+		printf("TinyBMS successfully Reset!\r\n");
+	}
+
+	//Clear Events & Statistics?
+	while(!validInput) {
+		printf("Clear Events and Statistics?\r\n)");
+		printf("0: Neither          1: Only Events\r\n");
+		printf("2: Only Statistics  3: Both\r\n");
+		userInput = 0;
+		scanf("%d", &userInput);
+
+		switch(userInput) {
+		case NEITHER:
+			validInput = TRUE;
+			printf("Keeping previous Events and Statistics..\r\n");
+			break;
+		case ONLYEVENTS:
+			validInput = TRUE;
+			printf("Clearing TinyBMS Events only..\r\n");
+			TinyBMS_UART_ResetClearEventsStatistics(&huart2, TINYBMS_CLEAR_EVENTS);
+			break;
+		case ONLYSTATS:
+			validInput = TRUE;
+			printf("Clearing TinyBMS Statistics only..\r\n");
+			TinyBMS_UART_ResetClearEventsStatistics(&huart2, TINYBMS_CLEAR_STATS);
+			break;
+		case BOTH:
+			validInput = TRUE;
+			printf("Clearing both TinyBMS Events and Statistics..\r\n");
+			TinyBMS_UART_ResetClearEventsStatistics(&huart2, TINYBMS_CLEAR_EVENTS);
+			TinyBMS_UART_ResetClearEventsStatistics(&huart2, TINYBMS_CLEAR_STATS);
+			break;
+		default:
+			validInput = FALSE;
+			printf("Invalid input.\r\n");
+			break;
+		}
+	}
+
+	//Read Version
+	TinyBMS_UART_ReadVersion(&huart2);
+	TinyBMS_UART_ReadVersionExtended(&huart2);
+
+	//Get Min/Max Cell Voltage Thresholds
+	uint16_t minCellVoltage = TinyBMS_UART_ReadBatteryPackMinCellVoltage(&huart2);
+	printf("Battery Pack Minimum Cell Voltage: %u (mV)\r\n", minCellVoltage);
+	uint16_t maxCellVoltage = TinyBMS_UART_ReadBatteryPackMaxCellVoltage(&huart2);
+	printf("Battery Pack Maximum Cell Voltage: %u (mV)\r\n", maxCellVoltage);
+
+	//Check for any active events
+	TinyBMS_UART_ReadAllEvents(&huart2);
+
+	//Verify Pack Voltage and Current
+	float packVoltage = TinyBMS_UART_ReadBatteryPackVoltage(&huart2);
+	printf("Secondary Battery Pack Voltage: %f (V)\r\n", packVoltage);
+	float packCurrent = TinyBMS_UART_ReadBatteryPackCurrent(&huart2);
+	printf("Secondary Battery Pack Current: %f (A)\r\n", packCurrent);
+
+	//Get initial State of Charge
+	uint32_t estSOC = TinyBMS_UART_ReadEstimatedSOCValue(&huart2);
+	printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\r\n", estSOC);
+
+	//Check Temperatures
+	TinyBMS_UART_ReadDeviceTemperatures(&huart2);
+
+	//Settings Registers: 300-301, 303-304, 306-308, 312-320, 328, 330-343
+	//					  (30 total settings) (344-399 reserved)
+	// rl max is 100 (0x64) registers, but this exceeds the actual total
+	// Check manual for explanations and screenshots of Battery Insider settings
+	uint16_t addr[28] = {
+			FULLYCHARGED_VOLTAGE, 			//0
+			FULLYDISCHARGED_VOLTAGE, 		//1
+			EARLY_BALANCING_THRESHOLD, 		//2
+			CHARGE_FINISHED_CURRENT, 		//3
+			BATTERY_CAPACITY, 				//4
+			NUMBER_OF_SERIES_CELLS, 		//5
+			ALLOWED_DISBALANCE, 			//6
+			PULSES_PER_UNIT,				//7
+			DISTANCE_UNIT_NAME, 			//8
+			OVERVOLTAGE_CUTOFF, 			//9
+			UNDERVOLTAGE_CUTOFF, 			//10
+			DISCHARGE_OVERCURRENT_CUTOFF, 	//11
+			CHARGE_OVERCURRENT_CUTOFF,		//12
+			OVERTEMP_CUTOFF,				//13
+			LOWTEMP_CHARGER_CUTOFF,			//14
+			//not setting STATE_OF_CHARGE_SETMANUAL
+			CHARGER_TYPE,					//15
+			LOAD_SWITCH_TYPE,				//16
+			AUTOMATIC_RECOVERY,				//17
+			CHARGER_SWITCH_TYPE,			//18
+			IGNITION,						//19
+			CHARGER_DETECTION,				//20
+			SPEED_SENSOR_INPUT,				//21
+			PRECHARGE_PIN,					//22
+			PRECHARGE_DURATION,				//23
+			TEMPERATURE_SENSOR_TYPE,		//24
+			BMS_OPERATION_MODE,				//25
+			//not setting SINGLE_PORT_SWITCH_TYPE
+			BROADCAST_TIME,					//26
+			PROTOCOL						//2
+	};
+	uint16_t data[28] = {
+			4000, 							//0
+			3000, 							//1
+			3200, 							//2
+			1000, 							//3
+			5000, 							//4
+			7, 								//5
+			15, 							//6
+			1,								//7
+			UNIT_KILOMETER, 				//8
+			4200, 							//9
+			2900, 							//10
+			60, 							//11
+			30,								//12
+			60,								//13
+			1,								//14
+			CHARGER_TYPE_CCCV,				//15
+			LOAD_SWITCH_TYPE_FET,			//16
+			5,								//17
+			CHARGER_SWITCH_TYPE_CHARGEFET,	//18
+			IGNITION_DISABLED,				//19
+			CHARGER_DETECTION_INTERNAL,		//20
+			SPEED_SENSOR_INPUT_DISABLED,	//21
+			PRECHARGE_PIN_DISABLED,			//22
+			PRECHARGE_DURATION_100MS,		//23
+			TEMP_SENSOR_TYPE_DUAL10KNTC,	//24
+			OPMODE_DUALPORT,				//25
+			BROADCAST_TIME_DISABLED,		//26
+			PROTOCOL_CAV3					//27
+	};
+
+	TinyBMS_UART_WriteRegIndividual(&huart2, 28, addr, data);
+
+	//Read back the settings
+	TinyBMS_UART_ReadSettingsValues(&huart2, TINYBMS_SETTINGS_CURRENT, 30);
+
+	//Verify Online Status is TINYBMS_STATUS_IDLE before proceeding
+	uint8_t isIdle = FALSE;
+	while(!isIdle) {
+		switch(TinyBMS_UART_ReadOnlineStatus(&huart2)) {
+		case TINYBMS_STATUS_CHARGING:
+			printf("TinyBMS is Charging..\r\n");
+			break;
+		case TINYBMS_STATUS_FULLYCHARGED:
+			printf("TinyBMS is Fully Charged!\r\n");
+			break;
+		case TINYBMS_STATUS_DISCHARGING:
+			printf("TinyBMS is Discharging..\r\n");
+			break;
+		case TINYBMS_STATUS_REGENERATION:
+			printf("TinyBMS is Regenerating..\r\n");
+			break;
+		case TINYBMS_STATUS_IDLE:
+			printf("TinyBMS is Idle..\r\n");
+			isIdle = TRUE;
+			retval = CMD_SUCCESS;
+			break;
+		case TINYBMS_STATUS_FAULT:
+			printf("TinyBMS Fault detected..\r\n");
+			//Check for any active events
+			TinyBMS_UART_ReadAllEvents(&huart2);
+			break;
+		default:
+			Error_Handler();
+		}
+	}
+
+	return retval;
+}
+
+uint8_t TinyBMS_Init_CAN(void) {
 	uint8_t retval = CMD_FAILURE;
 	int validInput = FALSE;
 	int userInput = 0;
@@ -403,20 +695,23 @@ uint8_t TinyBMS_Init(void) {
 		case NO:
 			validInput = TRUE;
 			printf("Skipping reset..\r\n");
-
+			break;
 		case YES:
 			validInput = TRUE;
 			printf("Resetting TinyBMS..\r\n");
 			TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_RESET_BMS);
-
+			break;
 		default:
 			validInput = FALSE;
 			printf("Invalid input.\r\n");
+			break;
 		}
 	}
 
 	//Check if BMS was Reset by reading Lifetime Counter
-	TinyBMS_CAN_ReadLifetimeCounter(&hcan1);
+	if(TinyBMS_CAN_ReadLifetimeCounter(&hcan1) < 5) {
+		printf("TinyBMS successfully Reset!\r\n");
+	}
 
 	//Clear Events & Statistics?
 	while(!validInput) {
@@ -431,26 +726,22 @@ uint8_t TinyBMS_Init(void) {
 			validInput = TRUE;
 			printf("Keeping previous Events and Statistics..\r\n");
 			break;
-
 		case ONLYEVENTS:
 			validInput = TRUE;
 			printf("Clearing TinyBMS Events only..\r\n");
 			TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_CLEAR_EVENTS);
 			break;
-
 		case ONLYSTATS:
 			validInput = TRUE;
 			printf("Clearing TinyBMS Statistics only..\r\n");
 			TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_CLEAR_STATS);
 			break;
-
 		case BOTH:
 			validInput = TRUE;
 			printf("Clearing both TinyBMS Events and Statistics..\r\n");
 			TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_CLEAR_EVENTS);
 			TinyBMS_CAN_ResetClearEventsStatistics(&hcan1, TINYBMS_CLEAR_STATS);
 			break;
-
 		default:
 			validInput = FALSE;
 			printf("Invalid input.\r\n");
@@ -462,18 +753,23 @@ uint8_t TinyBMS_Init(void) {
 	TinyBMS_CAN_ReadVersion(&hcan1);
 
 	//Get Min/Max Cell Voltage Thresholds
-	minCellVoltage = TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1);
-	maxCellVoltage = TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1);
+	uint16_t minCellVoltage = TinyBMS_CAN_ReadBatteryPackMinCellVoltage(&hcan1);
+	printf("Battery Pack Minimum Cell Voltage: %u (mV)\r\n", minCellVoltage);
+	uint16_t maxCellVoltage = TinyBMS_CAN_ReadBatteryPackMaxCellVoltage(&hcan1);
+	printf("Battery Pack Maximum Cell Voltage: %u (mV)\r\n", maxCellVoltage);
 
 	//Check for any active events
 	TinyBMS_CAN_ReadAllEvents(&hcan1);
 
 	//Verify Pack Voltage and Current
-	packVoltage = TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1);
-	packCurrent = TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1);
+	float packVoltage = TinyBMS_CAN_ReadBatteryPackVoltage(&hcan1);
+	printf("Secondary Battery Pack Voltage: %f (V)\r\n", packVoltage);
+	float packCurrent = TinyBMS_CAN_ReadBatteryPackCurrent(&hcan1);
+	printf("Secondary Battery Pack Current: %f (A)\r\n", packCurrent);
 
 	//Get initial State of Charge
-	initialSOC = TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1);
+	uint32_t estSOC = TinyBMS_CAN_ReadEstimatedSOCValue(&hcan1);
+	printf("TinyBMS Estimated StateOfCharge: %lu (0.000 001 %% Resolution)\r\n", estSOC);
 
 	//Check Temperatures
 	TinyBMS_CAN_ReadDeviceTemperatures(&hcan1);
@@ -481,6 +777,98 @@ uint8_t TinyBMS_Init(void) {
 	//Settings Registers: 300-301, 303-304, 306-308, 312-320, 328, 330-343
 	//					  (30 total settings) (344-399 reserved)
 	// rl max is 100 (0x64) registers, but this exceeds the actual total
+	// Check manual for explanations and screenshots of Battery Insider settings
+	uint16_t addr1[2] = {
+			FULLYCHARGED_VOLTAGE, 			//0
+			FULLYDISCHARGED_VOLTAGE 		//1
+	};
+	uint16_t addr2[2] = {
+			EARLY_BALANCING_THRESHOLD, 		//2
+			CHARGE_FINISHED_CURRENT			//3
+	};
+	uint16_t addr3[3] = {
+			BATTERY_CAPACITY, 				//4
+			NUMBER_OF_SERIES_CELLS, 		//5
+			ALLOWED_DISBALANCE 				//6
+	};
+	uint16_t addr4[1] = {
+			PULSES_PER_UNIT					//7
+	};
+	uint16_t addr5[7] = {
+			DISTANCE_UNIT_NAME, 			//8
+			OVERVOLTAGE_CUTOFF, 			//9
+			UNDERVOLTAGE_CUTOFF, 			//10
+			DISCHARGE_OVERCURRENT_CUTOFF, 	//11
+			CHARGE_OVERCURRENT_CUTOFF,		//12
+			OVERTEMP_CUTOFF,				//13
+			LOWTEMP_CHARGER_CUTOFF			//14
+	};
+	//not setting STATE_OF_CHARGE_SETMANUAL
+	uint16_t addr6[14] = {
+			CHARGER_TYPE,					//15
+			LOAD_SWITCH_TYPE,				//16
+			AUTOMATIC_RECOVERY,				//17
+			CHARGER_SWITCH_TYPE,			//18
+			IGNITION,						//19
+			CHARGER_DETECTION,				//20
+			SPEED_SENSOR_INPUT,				//21
+			PRECHARGE_PIN,					//22
+			PRECHARGE_DURATION,				//23
+			TEMPERATURE_SENSOR_TYPE,		//24
+			//not setting SINGLE_PORT_SWITCH_TYPE
+			BMS_OPERATION_MODE,				//25
+			BROADCAST_TIME,					//26
+			PROTOCOL						//27
+	};
+
+	uint16_t data1[2] = {
+			4000, 							//0
+			3000 							//1
+	};
+	uint16_t data2[2] = {
+			3200, 							//2
+			1000 							//3
+	};
+	uint16_t data3[3] = {
+			5000, 							//4
+			7, 								//5
+			15 								//6
+	};
+	uint16_t data4[1] = {
+			1								//7
+	};
+	uint16_t data5[7] = {
+			UNIT_KILOMETER, 				//8
+			4200, 							//9
+			2900, 							//10
+			60, 							//11
+			30,								//12
+			60,								//13
+			1								//14
+	};
+	uint16_t data6[14] = {
+			CHARGER_TYPE_CAN,				//15
+			LOAD_SWITCH_TYPE_FET,			//16
+			5,								//17
+			CHARGER_SWITCH_TYPE_CHARGEFET,	//18
+			IGNITION_DISABLED,				//19
+			CHARGER_DETECTION_INTERNAL,		//20
+			SPEED_SENSOR_INPUT_DISABLED,	//21
+			PRECHARGE_PIN_DISABLED,			//22
+			PRECHARGE_DURATION_100MS,		//23
+			TEMP_SENSOR_TYPE_DUAL10KNTC,	//24
+			OPMODE_DUALPORT,				//25
+			BROADCAST_TIME_DISABLED,		//26
+			PROTOCOL_CAV3					//27
+	};
+	TinyBMS_CAN_WriteRegBlock(&hcan1, 2, addr1[0], data1);
+	TinyBMS_CAN_WriteRegBlock(&hcan1, 2, addr2[0], data2);
+	TinyBMS_CAN_WriteRegBlock(&hcan1, 3, addr3[0], data3);
+	TinyBMS_CAN_WriteRegBlock(&hcan1, 1, addr4[0], data4);
+	TinyBMS_CAN_WriteRegBlock(&hcan1, 7, addr5[0], data5);
+	TinyBMS_CAN_WriteRegBlock(&hcan1, 14, addr6[0], data6);
+
+	//Read back the settings
 	TinyBMS_CAN_ReadSettingsValues(&hcan1, TINYBMS_SETTINGS_CURRENT, 30);
 
 	//Verify Online Status is TINYBMS_STATUS_IDLE before proceeding
@@ -490,32 +878,25 @@ uint8_t TinyBMS_Init(void) {
 		case TINYBMS_STATUS_CHARGING:
 			printf("TinyBMS is Charging..\r\n");
 			break;
-
 		case TINYBMS_STATUS_FULLYCHARGED:
 			printf("TinyBMS is Fully Charged!\r\n");
 			break;
-
 		case TINYBMS_STATUS_DISCHARGING:
 			printf("TinyBMS is Discharging..\r\n");
 			break;
-
 		case TINYBMS_STATUS_REGENERATION:
 			printf("TinyBMS is Regenerating..\r\n");
 			break;
-
 		case TINYBMS_STATUS_IDLE:
 			printf("TinyBMS is Idle..\r\n");
 			isIdle = TRUE;
 			retval = CMD_SUCCESS;
 			break;
-
 		case TINYBMS_STATUS_FAULT:
 			printf("TinyBMS Fault detected..\r\n");
 			//Check for any active events
 			TinyBMS_CAN_ReadAllEvents(&hcan1);
-			retval = CMD_FAILURE;
 			break;
-
 		default:
 			Error_Handler();
 		}
@@ -550,7 +931,6 @@ void SystemClock_Config_HSI(uint8_t clock_freq) {
 		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 		flash_latency = 1;
 		break;
-
 	case SYS_CLOCK_FREQ_84MHZ:
 		osc_init.PLL.PLLM = 16;
 		osc_init.PLL.PLLN = 168;
@@ -565,7 +945,6 @@ void SystemClock_Config_HSI(uint8_t clock_freq) {
 		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 		flash_latency = 2;
 		break;
-
 	case SYS_CLOCK_FREQ_120MHZ:
 		osc_init.PLL.PLLM = 16;
 		osc_init.PLL.PLLN = 240;
@@ -580,7 +959,6 @@ void SystemClock_Config_HSI(uint8_t clock_freq) {
 		clk_init.APB2CLKDivider = RCC_HCLK_DIV2;
 		flash_latency = 3;
 		break;
-
 	default:
 		return;
 	}
@@ -738,6 +1116,7 @@ void CAN_Init(uint8_t can_bitrate) {
 	default:
 		Error_Handler();
 	}
+
 	if(HAL_CAN_Init(&hcan1) != HAL_OK) {
 		Error_Handler();
 	}
@@ -850,38 +1229,6 @@ void CAN1_Tx(uint8_t device, uint8_t* message, uint8_t len) {
 	}
 }
 
-void LED_Manage_Output(uint8_t led_no) {
-
-	switch(led_no) {
-	case 1:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-		break;
-
-	case 2:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-		break;
-
-	case 3:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_SET);
-		break;
-
-	case 4:
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LED_GPIO_Port, LED3_Pin, GPIO_PIN_RESET);
-		break;
-
-	default:
-		break;
-	}
-}
-
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 	if(huart->Instance == USART2) {
 		printf("HAL_UART_TxCpltCallback USART2\r\n");
@@ -923,7 +1270,7 @@ void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) {
 		char msg[50];
 		printf("HAL_CAN_TxMailbox0CompleteCallback CAN1\r\n");
 		sprintf(msg,"Message Transmitted:M0\r\n");
-		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	}
 }
 
@@ -932,7 +1279,7 @@ void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) {
 		char msg[50];
 		printf("HAL_CAN_TxMailbox1CompleteCallback CAN1\r\n");
 		sprintf(msg,"Message Transmitted:M1\r\n");
-		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	}
 }
 
@@ -941,7 +1288,7 @@ void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) {
 		char msg[50];
 		printf("HAL_CAN_TxMailbox2CompleteCallback CAN1\r\n");
 		sprintf(msg,"Message Transmitted:M2\r\n");
-		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	}
 }
 
@@ -961,7 +1308,7 @@ void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
 		char msg[50];
 		printf("HAL_CAN_ErrorCallback CAN1\r\n");
 		sprintf(msg, "CAN Error Detected\r\n");
-		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 	}
 }
 

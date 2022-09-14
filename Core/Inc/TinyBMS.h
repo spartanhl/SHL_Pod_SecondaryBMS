@@ -2,8 +2,8 @@
 * @file TinyBMS.h
 * @brief TinyBMS Library Header
 * @author Oliver Moore
-* @version 1.5
-* @date 08-21-2022
+* @version 1.6
+* @date 09-13-2022
 ***********************************************/
 
 #ifndef INC_TINYBMS_H_
@@ -23,6 +23,106 @@
 
 #define CMD_ERROR								0x00
 #define CRC_ERROR								0x01
+
+/************ TinyBMS Settings Macros ************/
+#define UNIT_METER								0x01
+#define UNIT_KILOMETER							0x02
+#define UNIT_FEET								0x03
+#define UNIT_MILE								0x04
+#define UNIT_YARD								0x05
+
+#define CHARGER_TYPE_VARIABLE					0x00
+#define CHARGER_TYPE_CCCV						0x01
+#define CHARGER_TYPE_CAN						0x02
+
+#define LOAD_SWITCH_TYPE_FET					0x00
+#define LOAD_SWITCH_TYPE_AIDO1					0x01
+#define LOAD_SWITCH_TYPE_AIDO2					0x02
+#define LOAD_SWITCH_TYPE_DIDO1					0x03
+#define LOAD_SWITCH_TYPE_DIDO2					0x04
+#define LOAD_SWITCH_TYPE_AIHO1_ALOW				0x05
+#define LOAD_SWITCH_TYPE_AIHO1_AHIGH			0x06
+#define LOAD_SWITCH_TYPE_AIHO2_ALOW				0x07
+#define LOAD_SWITCH_TYPE_AIHO2_AHIGH			0x08
+
+#define CHARGER_SWITCH_TYPE_CHARGEFET			0x01
+#define CHARGER_SWITCH_TYPE_AIDO1				0x02
+#define CHARGER_SWITCH_TYPE_AIDO2				0x03
+#define CHARGER_SWITCH_TYPE_DIDO1				0x04
+#define CHARGER_SWITCH_TYPE_DIDO2				0x05
+#define CHARGER_SWITCH_TYPE_AIHO1_ALOW			0x06
+#define CHARGER_SWITCH_TYPE_AIHO1_AHIGH			0x07
+#define CHARGER_SWITCH_TYPE_AIHO2_ALOW			0x08
+#define CHARGER_SWITCH_TYPE_AIHO2_AHIGH			0x09
+
+#define IGNITION_DISABLED						0x00
+#define IGNITION_AIDO1							0x01
+#define IGNITION_AIDO2							0x02
+#define IGNITION_DIDO1							0x03
+#define IGNITION_DIDO2							0x04
+#define IGNITION_AIHO1							0x05
+#define IGNITION_AIHO2							0x06
+
+#define CHARGER_DETECTION_INTERNAL				0x01
+#define CHARGER_DETECTION_AIDO1					0x02
+#define CHARGER_DETECTION_AIDO2					0x03
+#define CHARGER_DETECTION_DIDO1					0x04
+#define CHARGER_DETECTION_DIDO2					0x05
+#define CHARGER_DETECTION_AIHO1					0x06
+#define CHARGER_DETECTION_AIHO2					0x07
+
+#define SPEED_SENSOR_INPUT_DISABLED				0x00
+#define SPEED_SENSOR_INPUT_DIDO1				0x01
+#define SPEED_SENSOR_INPUT_DIDO2				0x02
+
+#define PRECHARGE_PIN_DISABLED					0x00
+#define PRECHARGE_PIN_DISCHARGEFET				0x02
+#define PRECHARGE_PIN_AIDO1						0x03
+#define PRECHARGE_PIN_AIDO2						0x04
+#define PRECHARGE_PIN_DIDO1						0x05
+#define PRECHARGE_PIN_DIDO2						0x06
+#define PRECHARGE_PIN_AIHO1_ALOW				0x07
+#define PRECHARGE_PIN_AIHO1_AHIGH				0x08
+#define PRECHARGE_PIN_AIHO2_ALOW				0x09
+#define PRECHARGE_PIN_AIHO2_AHIGH				0x10
+
+#define PRECHARGE_DURATION_100MS				0x00
+#define PRECHARGE_DURATION_200MS				0x01
+#define PRECHARGE_DURATION_500MS				0x02
+#define PRECHARGE_DURATION_1S					0x03
+#define PRECHARGE_DURATION_2S					0x04
+#define PRECHARGE_DURATION_3S					0x05
+#define PRECHARGE_DURATION_4S					0x06
+#define PRECHARGE_DURATION_5S					0x07
+
+#define OPMODE_DUALPORT							0x00
+#define OPMODE_SINGLEPORT						0x01
+
+#define TEMP_SENSOR_TYPE_DUAL10KNTC				0x00
+#define TEMP_SENSOR_TYPE_MULTIPOINTACTIVESENSOR	0x01
+
+#define SINGLEPORT_SWITCH_TYPE_FET				0x00
+#define SINGLEPORT_SWITCH_TYPE_AIDO1			0x01
+#define SINGLEPORT_SWITCH_TYPE_AIDO2			0x02
+#define SINGLEPORT_SWITCH_TYPE_DIDO1			0x03
+#define SINGLEPORT_SWITCH_TYPE_DIDO2			0x04
+#define SINGLEPORT_SWITCH_TYPE_AIHO1_ALOW		0x05
+#define SINGLEPORT_SWITCH_TYPE_AIHO1_AHIGH		0x06
+#define SINGLEPORT_SWITCH_TYPE_AIHO2_ALOW		0x07
+#define SINGLEPORT_SWITCH_TYPE_AIHO2_AHIGH		0x08
+
+#define BROADCAST_TIME_DISABLED					0x00
+#define BROADCAST_TIME_100MS					0x01
+#define BROADCAST_TIME_200MS					0x02
+#define BROADCAST_TIME_500MS					0x03
+#define BROADCAST_TIME_1S						0x04
+#define BROADCAST_TIME_2S						0x05
+#define BROADCAST_TIME_5S						0x06
+#define BROADCAST_TIME_10S						0x07
+
+#define PROTOCOL_CAV3							0x00
+#define PROTOCOL_ASCII							0x01
+#define PROTOCOL_SOCBAR							0x02
 
 /************ TinyBMS CAN Identifier Macros ************/
 
@@ -290,6 +390,7 @@
 #define FULLYDISCHARGED_VOLTAGE					301		// [UINT_16] [1000 to  3500] 1mV Resolution		(R/W)
 /* RESERVED 302 */
 #define EARLY_BALANCING_THRESHOLD				303		// [UINT_16] [1000 to  4500] 1mV Resolution		(R/W)
+
 #define CHARGE_FINISHED_CURRENT					304		// [UINT_16] [ 100 to  5000] 1mA Resolution		(R/W) *
 // *Tiny BMS device internally changes this setting's min and max values according to current sensor used
 
@@ -299,11 +400,12 @@
 #define ALLOWED_DISBALANCE						308		// [UINT_16] [  15 to   100] 1mV Resolution		(R/W)
 /* RESERVED 309-311 */
 #define PULSES_PER_UNIT							312		// [UINT_32] [ 1 to  100000] 1 pulse per unit Resolution (R/W)  //High Word: 313
-#define DISTANCE_UNIT_NAME						314		// [UINT_16] [1200 to  4500] 1mV Resolution		(R/W)
+#define DISTANCE_UNIT_NAME						314		// [UINT_16] 									(R/W)
 // ^ 0x01-Meter, 0x02-Kilometer, 0x03-Feet, 0x04-Mile, 0x05-Yard
 
 #define OVERVOLTAGE_CUTOFF						315		// [UINT_16] [1200 to  4500] 1mV Resolution		(R/W)
 #define UNDERVOLTAGE_CUTOFF						316		// [UINT_16] [ 800 to  3500] 1mV Resolution		(R/W)
+
 #define DISCHARGE_OVERCURRENT_CUTOFF			317		// [UINT_16] [   1 to   750] 1A  Resolution		(R/W) *
 // *Tiny BMS device internally changes this setting's min and max values according to current sensor used
 
@@ -313,13 +415,13 @@
 #define OVERTEMP_CUTOFF							319		// [INT_16]  [ +20 to   +90] 1°C Resolution		(R/W)
 #define LOWTEMP_CHARGER_CUTOFF					320		// [INT_16]  [ -40 to   +10] 1°C Resolution		(R/W)
 /* RESERVED 321-327 */
-#define STATE_OF_CHARGE_SETTING					328		// [UINT_16] [   0 to 50000] 0.002% Resolution  (R/W)
+#define STATE_OF_CHARGE_SETMANUAL				328		// [UINT_16] [   0 to 50000] 0.002% Resolution  (R/W)
 /* RESERVED 329 */
 
 /* ** The High Bytes of the following Registers (330-343) are all RESERVED..   **
  * ** ONLY the Low Byte (bits 0-7) is used for R/W of the following registers. ** */
 #define CHARGER_TYPE							330		// [UINT_8]  [1200 to  4500] 1mV Resolution		(R/W)
-// ^ 0x01-Variable (Reserved), 0x01-CC/CV, 0x02-CAN (Reserved)
+// ^ 0x00-Variable (Reserved), 0x01-CC/CV, 0x02-CAN (Reserved)
 
 #define LOAD_SWITCH_TYPE						331		// [UINT_8]										(R/W)
 // ^ 0x00-FET, 0x01-AIDO1, 0x02-AIDO2, 0x03-DIDO1, 0x04-DIDO2, 0x05-AIHO1 Active Low,
@@ -472,7 +574,6 @@ uint8_t TinyBMS_UART_WriteRegBlock(UART_HandleTypeDef *huart, uint8_t pl, uint16
 uint8_t TinyBMS_UART_WriteRegIndividual(UART_HandleTypeDef *huart, uint8_t pl, uint16_t addr[], uint16_t data[]);
 uint8_t TinyBMS_UART_ReadRegBlockMODBUS(UART_HandleTypeDef *huart, uint16_t addr, uint8_t rl);
 uint8_t TinyBMS_UART_WriteRegBlockMODBUS(UART_HandleTypeDef *huart, uint16_t addr, uint8_t rl, uint8_t pl, uint16_t data[]);
-
 uint8_t TinyBMS_UART_ResetClearEventsStatistics(UART_HandleTypeDef *huart, uint8_t option);
 uint8_t TinyBMS_UART_ReadNewestEvents(UART_HandleTypeDef *huart);
 uint8_t TinyBMS_UART_ReadAllEvents(UART_HandleTypeDef *huart);
