@@ -1,5 +1,5 @@
 # SHL_Pod_SecondaryBMS
-### STM32 Nucleo-F746xx test environment with a library of supported API for the Secondary BMS: *Energus TinyBMS s516-150A*
+### STM32 Nucleo-F746xx application with a library of supported commands for the Secondary BMS: *Energus TinyBMS s516-150A*
 
 
 ## Connections / Wiring
@@ -7,7 +7,7 @@
 							  or \
 **STM32 Nucleo-F746ZG**   <-**CAN-UART**->  **Energus TinyBMS s516-150A**
 
-ElCon Charger, TinyBMS (via CAN-UART converter), and STM32F7 communication via CAN2.0b (extended ID)
+ElCon Charger (CAN-enabled), TinyBMS (via CAN-UART converter), and STM32F7 communication via CAN2.0b (extended ID)
 
 ## Battery Pack Configuration
 **Secondary Pack Characteristics** \
@@ -22,14 +22,22 @@ V_cell_empty = 3.0V,   V_cell_nominal = 3.6V,   V_cell_full = 4.2V \
 V_pack_empty = 21.0V,   V_pack_nominal = 25.2V,   V_pack_full = 29.4V
 
 **Module Construction** \
-Each 'super-cell', in actuality, is a '10x2' (10 by 2) module which is comprised of 20 '18650' cells connected in parallel, but constructed as 2 rows of 10 cells.
+Each 'super-cell' is a '10x2' (10 by 2) module which is comprised of 20 '18650' cells connected in parallel, but arranged in 2 rows of 10 cells.
 
 **Pack Configuration** \
 The secondary battery pack is 7 of these 'super-cells' connected in series.
 
+## Application Menu
+    1: UART Command Test
+    2: CAN Command Test
+    3: Monitor Charging (UART)
+    4: Monitor Discharging (UART)
+    5: Monitor Charging (CAN)
+    6: Monitor Discharging (CAN)
+    7: Quit
 
-## Supported API
-- UART API Testing:
+## Supported Commands
+- UART Command Testing:
 	- 1.1.1 		TinyBMS_UART_ACK
 	- 1.1.2 		TinyBMS_UART_ReadRegBlock
 	- 1.1.3 		TinyBMS_UART_ReadRegIndividual
@@ -54,7 +62,7 @@ The secondary battery pack is 7 of these 'super-cells' connected in series.
 	- 1.1.22 		TinyBMS_UART_ReadVersionExtended
 	- 1.1.23 		TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft
  
-- CAN API Testing:
+- CAN Command Testing:
 	- 2.1.1 		TinyBMS_CAN_ResetClearEventsStatistics
 	- 2.1.2 		TinyBMS_CAN_ReadRegBlock
 	- 2.1.3 		TinyBMS_CAN_WriteRegBlock
