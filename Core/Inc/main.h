@@ -23,8 +23,8 @@ extern uint32_t TinybmsStdID_Response;
 extern uint8_t rx_buffer[500];
 
 /*************** Function Prototypes ***************/
-void UART_Test_API(void);
-void CAN_Test_API(void);
+void UART_Test_CMD(void);
+void CAN_Test_CMD(void);
 void TinyBMS_MonitorCharging_UART(void);
 void TinyBMS_MonitorDischarging_UART(void);
 void TinyBMS_MonitorCharging_CAN(void);
@@ -62,8 +62,8 @@ void Error_Handler(void);
 #define TINYBMS					0
 #define ELCONCHARGER2			2
 
-#define MENU_UART_API_TEST				1
-#define MENU_CAN_API_TEST				2
+#define MENU_UART_CMD_TEST				1
+#define MENU_CAN_CMD_TEST				2
 #define MENU_MONITOR_CHARGE_UART		3
 #define MENU_MONITOR_DISCHARGE_UART		4
 #define MENU_MONITOR_CHARGE_CAN			5
