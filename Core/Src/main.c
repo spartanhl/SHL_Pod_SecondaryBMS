@@ -39,12 +39,12 @@ int main(void) {
 	CAN_Begin();
 
     printf("*** Spartan Hyperloop 2018-22 ***\r\n");
-	printf("Energus TinyBMS API Test App\r\n");
+	printf("Energus TinyBMS App for STM32 Nucleo-F746xx\r\n");
 	printf("Secondary Battery Pack BMS\r\n");
 
     printf("Menu\r\n");
-    printf("1: UART API Test\r\n");
-    printf("2: CAN API Test\r\n");
+    printf("1: UART Command Test\r\n");
+    printf("2: CAN Command Test\r\n");
     printf("3: Monitor Charging (UART)\r\n");
     printf("4: Monitor Discharging (UART)\r\n");
     printf("5: Monitor Charging (CAN)\r\n");
@@ -57,16 +57,16 @@ int main(void) {
 		scanf("%d", &userInput);
 
 		switch(userInput) {
-		//UART API Test
-		case MENU_UART_API_TEST:
-			printf("UART API Test..\r\n");
-			UART_Test_API();
+		//UART Command Test
+		case MENU_UART_CMD_TEST:
+			printf("UART CMD Test..\r\n");
+			UART_Test_CMD();
 			app_done = TRUE;
 			break;
-		//CAN API Test
-		case MENU_CAN_API_TEST:
-			printf("CAN API Test..\r\n");
-			CAN_Test_API();
+		//CAN Command Test
+		case MENU_CAN_CMD_TEST:
+			printf("CAN CMD Test..\r\n");
+			CAN_Test_CMD();
 			app_done = TRUE;
 			break;
 		//Monitor Charging (UART)
@@ -108,7 +108,7 @@ int main(void) {
 	return 0;
 }
 
-void UART_Test_API(void) {
+void UART_Test_CMD(void) {
 	int8_t option = 0;
 	//rl: registers to read/write | pl: payload length in bytes
 	uint8_t rl = 0, pl = 0;
@@ -228,7 +228,7 @@ void UART_Test_API(void) {
 	while(TinyBMS_UART_ReadCalcSpeedDistanceLeftEstTimeLeft(&huart2) != CMD_SUCCESS) {}
 }
 
-void CAN_Test_API(void) {
+void CAN_Test_CMD(void) {
 	int8_t option = 0;
 	uint8_t rl = 0;
 	uint16_t addr = 0x00;
