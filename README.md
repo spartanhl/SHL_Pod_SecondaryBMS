@@ -1,6 +1,7 @@
 # SHL_Pod_SecondaryBMS
 ### STM32 Nucleo-F746xx application with a library of supported commands for the Secondary BMS: *Energus TinyBMS s516-150A*
 
+Low Current Application (150A_peak discharging, 30A_peak charging) 
 
 ## Connections / Wiring
 **STM32 Nucleo-F746ZG**    <-**UART**->   **Energus TinyBMS s516-150A** \
@@ -26,6 +27,39 @@ Each 'super-cell' is a '10x2' (10 by 2) module which is comprised of 20 '18650' 
 
 **Pack Configuration** \
 The secondary battery pack is 7 of these 'super-cells' connected in series.
+
+## BMS Settings Registers Configuration
+| Settings Register					|	Value		|
+| :--- 								|	:----:		|
+| Fully Charged Voltage: 			|4000mV			|
+| Fully Discharged Voltage: 		|3000mV			|
+| Early Balancing Threshold: 		|3200mV			|
+| Charge Finished Current:			|1000mA			|
+| Battery Capacity:					|5000mAh		|
+| Number of Series Cells:			|7				|
+| Allowed Disbalance:				|15mV			|
+| Pulses Per Unit:					|1				|
+| Distance Unit Name:				|km				|
+| Over-Voltage Cutoff:				|4200mV			|
+| Under-Voltage Cutoff:				|2900mV			|
+| Discharge Over-Current Cutoff:	|60A			|
+| Charge Over-Current Cutoff:		|30A			|
+| Over-Temp Cutoff:					|60C			|
+| Low Temperature Charger Cutoff:	|1C				|
+| Charger Type:						|CAN			|
+| Load Switch Type:					|FET			|
+| Automatic Recovery:				|5s				|
+| Charger Switch Type:				|Charge FET		|
+| Ignition:							|Disabled		|
+| Charger Detection:				|Internal		|
+| Speed Sensor Input:				|Disabled		|
+| Precharge Pin:					|Disabled		|
+| Precharge Duration:				|100ms			|
+| Temperature Sensor Type:			|Dual 10K NTC	|
+| BMS Operation Mode:				|Dual Port		|
+| Single Port Switch Type:			|N/A			|
+| Broadcast Time:					|Disabled		|
+| Protocol:							|CAV3			|
 
 ## Application Menu
     1: UART Command Test
