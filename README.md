@@ -1,32 +1,66 @@
 # SHL_Pod_SecondaryBMS
 ### STM32 Nucleo-F746xx application with a library of supported commands for the Secondary BMS: *Energus TinyBMS s516-150A*
 
-Low Current Application (150A_peak discharging, 30A_peak charging) 
-
 ## Connections / Wiring
-**STM32 Nucleo-F746ZG**    <-**UART**->   **Energus TinyBMS s516-150A** \
+**STM32 Nucleo-F746ZG**   <----**UART**---->  **Energus TinyBMS s516-150A** \
 							  or \
-**STM32 Nucleo-F746ZG**   <-**CAN-UART**->  **Energus TinyBMS s516-150A**
+**STM32 Nucleo-F746ZG**   <-**CAN-UART**->  **Energus TinyBMS s516-150A** \
+<CC/CV Charger> 
 
-ElCon Charger (CAN-enabled), TinyBMS (via CAN-UART converter), and STM32F7 communication via CAN2.0b (extended ID)
+## UART or CAN Configuration
+**UART** \
+UART continuous communication in DMA (Direct Memory Access) mode  \
+Baudrate: 115200 bit/s, 8 data bits, 1 stop bit, no parity, no flow control
+
+**CAN** \
+bxCAN (Basic Extended Controller Area Network) peripheral driver for STM32 \
+CAN2.0A (11-bit standard ID)  \
+TinyBMS Default Node ID: 0x01 -> StdID_request: 0x201, StdID_response: 0x241 \
+CAN bitrate: 500000bit/s 
 
 ## Battery Pack Configuration
 **Secondary Pack Characteristics** \
-24V 50Ah 15C (7S 20P)  -- *Specced for a minimum of 2 hours runtime @ continuous load.*
+24V 50Ah (7S 20P)  -- *Specced for (t >= 2) hours runtime @ continuous load.* \
+Nominal Capacity: 50Ah / 180Wh \
+Peak Discharge Current: 15C max (750A) \
+Average Discharge Current: 5C max (250A) 
 
 **Individual Cell**  \
-*Samsung INR18650-25R* - Lithium Ion "18650" cylindrical cell
+*Samsung INR18650-25R* - Lithium Ion "18650" cylindrical cell - 2500mAh
+
+**Dimensions** \
+Cell Height: 64.85 +/- 0.15mm \
+Cell Diameter: 18.33 +/- 0.07mm
+
+**Mass** \
+Cell: 45.0g per cell \
+Module: 1.05kg per module \
+Pack: 7.35kg ~= 16.2lb
 
 **Electrical Ratings** \
 I_cell_rating = 20A_ctns,   I_pack_rating = 400A_ctns \
-V_cell_empty = 3.0V,   V_cell_nominal = 3.6V,   V_cell_full = 4.2V \
-V_pack_empty = 21.0V,   V_pack_nominal = 25.2V,   V_pack_full = 29.4V
+V_cell_absmin = 2.5V,   V_cell_nominal = 3.6V,   V_cell_absmax = 4.2V \
+V_pack_absmin = 17.5V,   V_pack_nominal = 25.2V,   V_pack_absmax = 29.4V
 
 **Module Construction** \
 Each 'super-cell' is a '10x2' (10 by 2) module which is comprised of 20 '18650' cells connected in parallel, but arranged in 2 rows of 10 cells.
 
 **Pack Configuration** \
 The secondary battery pack is 7 of these 'super-cells' connected in series.
+
+**Charging Characteristics** \
+Standard Charge (**cell**): CC/CV, 1.25A, 4.20 +/- 0.05V, 125mA cut-off -> 180min \
+Rapid Charge (**cell**): CC/CV, 4.00A, 4.20 +/- 0.05V, 100mA cut-off -> 60min (at 25°C) \
+Standard Charge (**pack**): CC/CV, 25.00A, 29.4 +/- 0.35V, 2.5A cut-off -> 180min \
+Rapid Charge (**pack**): CC/CV, 80.00A, 29.4 +/- 0.35V, 2.0A cut-off -> 60min (at 25°C) \
+Operating Temperature: 0 to 50°C
+
+**Discharging Characteristics** \
+Nominal Discharge (**cell**): 0.2C (500mA), 2.5V cut-off \
+Max Continuous Discharge (**cell**): 8C (20A) (at 25°C), 60% at 250 cycles \
+Nominal Discharge (**pack**): 0.2C, 2.5V cut-off \
+Max Continuous Discharge (**pack**): 20A (at 25°C), 60% at 250 cycles \
+Operating Temperature: -20 to 75°C
 
 ## BMS Settings Registers Configuration
 | Settings Register					|	Value		|
@@ -44,8 +78,8 @@ The secondary battery pack is 7 of these 'super-cells' connected in series.
 | Under-Voltage Cutoff:				|2900mV			|
 | Discharge Over-Current Cutoff:	|60A			|
 | Charge Over-Current Cutoff:		|30A			|
-| Over-Temp Cutoff:					|60C			|
-| Low Temperature Charger Cutoff:	|1C				|
+| Over-Temp Cutoff:					|60°C			|
+| Low Temperature Charger Cutoff:	|1°C			|
 | Charger Type:						|CAN			|
 | Load Switch Type:					|FET			|
 | Automatic Recovery:				|5s				|
@@ -60,6 +94,17 @@ The secondary battery pack is 7 of these 'super-cells' connected in series.
 | Single Port Switch Type:			|N/A			|
 | Broadcast Time:					|Disabled		|
 | Protocol:							|CAV3			|
+
+## System
+*Low Current Application (150A_peak discharging, 30A_peak charging)*
+- Connected Devices
+	- Energus TinyBMS s516-150A (?W)
+	- Orion BMS Jr (?W)
+	- Stepper Motors for Braking System (?W)
+	- Bender ISOMETER IR155-3204 (?W)
+	- STM32 Nucleo-F746ZG (?W)
+	- Power Converters (?W)
+	- Miscellaneous Sensors and Peripherals (?W)
 
 ## Application Menu
     1: UART Command Test
